@@ -57,6 +57,7 @@ int main(void)
 /*	struct stat st;*/
 	int i = 0;
 	char **path_var = get_path();
+	char **path_ptr;
 	extern char **environ;
 
 	buf = malloc(buf_size + 1);
@@ -68,6 +69,7 @@ int main(void)
 
 	while (1)
 	{
+		path_ptr = path_var;
 		args[1] = NULL;
 		args[2] = NULL;
 		args[3] = NULL;
@@ -84,7 +86,7 @@ int main(void)
 				*ptr = '\0';
 				ptr++;
 				args[i] = ptr;
-				if (i < 4)
+				if (i < 3)
 					i++;
 			}
 			ptr++;
@@ -94,6 +96,17 @@ int main(void)
 			write(STDERR_FILENO, "getline failed\n", 14);
 			_exit(EXIT_FAILURE);
 		}
+		if (access(buf, F_OK) != 0)
+		{
+			args[0] = malloc(100);
+			while (*path_ptr != NULL && access(args[0], F_OK) != 0)
+			{
+				str_cmb(&args[0], *path_ptr, buf);
+				path_ptr++;
+			}
+		}
+		else
+			args[0] = buf;
 		pid = fork();
 		if (pid == -1)
 		{
@@ -102,27 +115,6 @@ int main(void)
 		}
 		else if (pid == 0)
 		{
-while (*path_var != NULL)
-{
-	printf("%s\n", *path_var);
-	path_var++;
-}
-
-			if (access(buf, X_OK) != 0)
-			{
-				args[0] = malloc(100);
-				while (*path_var != NULL && access(args[0], X_OK) != 0)
-				{
-					str_cmb(&args[0], *path_var, buf);
-printf("%sX\n", args[0]);
-					path_var++;
-if (*path_var == NULL)
-	printf("NULL\n");
-printf("%sX\n", *path_var);
-				}
-			}
-			else
-				args[0] = buf;
 			execve(args[0], args, environ);
 			write(STDERR_FILENO, "./shell: No such file or directory\n", 35);
 			_exit(EXIT_FAILURE);

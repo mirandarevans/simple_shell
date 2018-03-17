@@ -48,7 +48,7 @@ char **get_path(void)
 
 	while (*env_ptr != '\0')
 	{
-		if (*env_ptr == '\n')
+		if (*env_ptr == ':')
 			i++;
 
 		env_ptr++;

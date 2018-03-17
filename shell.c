@@ -1,15 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-#include <string.h>
+#include "shell.h"
 
 #define TRUE 1
 #define FALSE 0
-
+/*
 int check_path(char *str)
 {
 	char *p = "/bin/";
@@ -26,7 +19,7 @@ int check_path(char *str)
 
 	return (is_same);
 }
-
+*/
 void str_cmb(char **buffer, char *str1, char *str2)
 {
 	char *ptr = *buffer;
@@ -37,6 +30,10 @@ void str_cmb(char **buffer, char *str1, char *str2)
 		ptr++;
 		str1++;
 	}
+
+	*ptr = '/';
+	ptr++;
+
 	while (*str2 != '\0')
 	{
 		*ptr = *str2;
@@ -44,7 +41,7 @@ void str_cmb(char **buffer, char *str1, char *str2)
 		str2++;
 	}
 
-	ptr = '\0';
+	*ptr = '\0';
 }
 
 /* remember to account for many arguments */
@@ -57,8 +54,10 @@ int main(void)
 	int bytes_read;
 	char *args[5];
 	char *ptr;
-	struct stat st;
-	int i;
+/*	struct stat st;*/
+	int i = 0;
+	char **path_var = get_path();
+	extern char **environ;
 
 	buf = malloc(buf_size + 1);
 	if (buf == NULL)
@@ -103,27 +102,34 @@ int main(void)
 		}
 		else if (pid == 0)
 		{
-			if (stat(buf, &st) != 0)
+while (*path_var != NULL)
+{
+	printf("%s\n", *path_var);
+	path_var++;
+}
+
+			if (access(buf, X_OK) != 0)
 			{
-				args[0] = malloc(bytes_read + 5);
-				str_cmb(&args[0], "/bin/", buf);
-				if (stat(args[0], &st) != 0)
-			{
-					write(STDERR_FILENO, "./shell: No such file or directory\n", 35);
-					_exit(EXIT_FAILURE);
+				args[0] = malloc(100);
+				while (*path_var != NULL && access(args[0], X_OK) != 0)
+				{
+					str_cmb(&args[0], *path_var, buf);
+printf("%sX\n", args[0]);
+					path_var++;
+if (*path_var == NULL)
+	printf("NULL\n");
+printf("%sX\n", *path_var);
 				}
 			}
 			else
 				args[0] = buf;
-/*printf("%s\n", args[0]);
-printf("%s\n", args[1]);
-printf("%s\n", args[2]);*/
-			execve(args[0], args, NULL);
+			execve(args[0], args, environ);
 			write(STDERR_FILENO, "./shell: No such file or directory\n", 35);
 			_exit(EXIT_FAILURE);
 		}
 		wait(&status);
 	}
+	free(path_var);
 	free(buf);
 	free(args[0]);
 

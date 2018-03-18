@@ -21,10 +21,7 @@ char *_strcpy(char *src)
 
 	dest = malloc(len + 1);
 	if (dest == NULL)
-	{
-		write(STDERR_FILENO, "malloc failed\n", 14);
-		exit(EXIT_FAILURE);
-	}
+		err_exit("./hsh", 'm');
 
 	ptr = dest;
 
@@ -38,46 +35,41 @@ char *_strcpy(char *src)
 	return (dest);
 }
 
-char **get_path(void)
+char **make_array(char *str, char delim)
 {
-	const char *env_str = getenv("PATH");
-	char *env_cpy = _strcpy((char *)env_str);
-	char *env_ptr = env_cpy;
+	char *str_ptr = str;
 	unsigned int i = 2;
-	char **env_arr = NULL;
+	char **array = NULL;
 
-	while (*env_ptr != '\0')
+	while (*str_ptr != '\0')
 	{
-		if (*env_ptr == ':')
+		if (*str_ptr == delim)
 			i++;
 
-		env_ptr++;
+		str_ptr++;
 	}
 
-	env_arr = malloc(i * sizeof(char *));
-	if (env_arr == NULL)
-	{
-		write(STDERR_FILENO, "malloc failed\n", 14);
-		exit(EXIT_FAILURE);
-	}
+	array = malloc(i * sizeof(char *));
+	if (array == NULL)
+		err_exit("./hsh", 'm');
 
-	env_arr[0] = env_cpy;
-	env_ptr = env_cpy;
+	array[0] = str;
+	str_ptr = str;
 	i = 1;
 
-	while (*env_ptr != '\0')
+	while (*str_ptr != '\0')
 	{
-		if (*env_ptr == ':')
+		if (*str_ptr == delim)
 		{
-			*env_ptr = '\0';
-			env_ptr++;
-			env_arr[i] = env_ptr;
+			*str_ptr = '\0';
+			str_ptr++;
+			array[i] = str_ptr;
 			i++;
 		}
-		env_ptr++;
+		str_ptr++;
 	}
-	env_arr[i] = NULL;
+	array[i] = NULL;
 
-	return (env_arr);
+	return (array);
 }
 

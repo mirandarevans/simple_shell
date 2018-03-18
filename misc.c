@@ -1,5 +1,38 @@
 #include "shell.h"
 
+void err_exit(char *prog, char err_type)
+{
+	switch (err_type) {
+	case 'm':
+		write(STDERR_FILENO, prog, 20);
+		perror(": malloc failed\n");
+		exit(EXIT_FAILURE);
+		break;
+	case 'g':
+		write(STDERR_FILENO, prog, 20);
+		perror(": getline failed\n");
+		exit(EXIT_FAILURE);
+		break;
+	case 'f':
+		write(STDERR_FILENO, prog, 20);
+		perror(": fork failed\n");
+		exit(EXIT_FAILURE);
+		break;
+	case 'n':
+		write(STDERR_FILENO, prog, 20);
+		perror(": no such file or directory\n");
+		exit(EXIT_FAILURE);
+		break;
+	case 'e':
+		write(STDERR_FILENO, prog, 20);
+		perror(": flush failed\n");
+		exit(EXIT_FAILURE);
+		break;
+	default:
+		break;
+	}
+}
+
 int str_compare(char *s1, char *s2)
 {
 	while (*s1 != '\0' && *s2 != '\0')
@@ -34,46 +67,47 @@ void str_cmb(char **buffer, char *str1, char *str2)
 
 	*ptr = '\0';
 }
-/*
-void prepend(char c, char *buffer)
-{
-	char *ptr = buffer;
 
-	while (*ptr != '\0')
-		ptr++;
-
-	while (ptr != buffer)
-	{
-		*(ptr + 1) = *ptr;
-		ptr--;
-	}
-	*(ptr + 1) = *ptr;
-	*ptr = c;
-}
-*/
-/*
-ssize_t getline(char **lineptr, size_t *n, int fd)
+ssize_t _getline(char **lineptr, size_t *n, int fd)
 {
-	char *buf = NULL;
+	char *buffer = NULL;
+	char *ptr;
 	int r;
+	int i = 0;
 
 	r = read(fd, *lineptr, *n);
 	if (r == -1)
-	{
-		write(STDERR_FILENO, "getline failed\n", 15);
-		_exit(EXIT_FAILURE);
-	}
-	if (r < n)
-		return (r);
-	buf = malloc(*n);
-	if (buf == 0)
-	{
-		write(STDERR_FILENO, "malloc failed\n", 14)
-		_exit(EXIT_FAILURE);
-	}
+		err_exit("./hsh", 'g');
 
-	while (r > *n)
+	if (r < (int)*n)
+	{
+		if (fflush(NULL) != 0)
+			err_exit("./hsh", 'e');
+		
+		return (r);
+	}
+	buffer = malloc(*n);
+	if (buffer == NULL)
+		err_exit("./hsh", 'm');
+
+	str_cmb(&buffer, *lineptr, "");
+	i = r;
+	while (r == (int)*n)
 	{
 		r = read(fd, *lineptr, *n);
+		if (r == -1)
+			err_exit("./hsh", 'g');
+		if (_realloc(buffer, (unsigned)i, (unsigned)(i + r)) == NULL)
+			err_exit("./hsh", 'm');
+		ptr = buffer + i;
+		str_cmb(&ptr, *lineptr, "");
+		i += r;
 	}
-}*/
+	 if (fflush(NULL) != 0)
+		err_exit("./hsh", 'e');
+
+	free(*lineptr);
+	lineptr = &buffer;
+
+	return i;
+}

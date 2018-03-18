@@ -1,50 +1,5 @@
 #include "shell.h"
 
-#define TRUE 1
-#define FALSE 0
-/*
-int check_path(char *str)
-{
-	char *p = "/bin/";
-	int is_same = TRUE;
-
-	while (*p != '\0')
-	{
-		if (*str != *p)
-			is_same = FALSE;
-
-		str++;
-		p++;
-	}
-
-	return (is_same);
-}
-*/
-void str_cmb(char **buffer, char *str1, char *str2)
-{
-	char *ptr = *buffer;
-
-	while (*str1 != '\0')
-	{
-		*ptr = *str1;
-		ptr++;
-		str1++;
-	}
-
-	*ptr = '/';
-	ptr++;
-
-	while (*str2 != '\0')
-	{
-		*ptr = *str2;
-		ptr++;
-		str2++;
-	}
-
-	*ptr = '\0';
-}
-
-/* remember to account for many arguments */
 int main(void)
 {
 	int status;
@@ -52,13 +7,13 @@ int main(void)
 	size_t buf_size = 100;
 	pid_t pid;
 	int bytes_read;
-	char *args[5];
+	char **args = NULL;
 	char *ptr;
-/*	struct stat st;*/
-	int i = 0;
+	int i;
 	char **path_var = get_path();
 	char **path_ptr;
 	extern char **environ;
+	char *tmp;
 
 	buf = malloc(buf_size + 1);
 	if (buf == NULL)
@@ -69,16 +24,46 @@ int main(void)
 
 	while (1)
 	{
+		tmp = NULL;
 		path_ptr = path_var;
-		args[1] = NULL;
-		args[2] = NULL;
-		args[3] = NULL;
-		args[4] = NULL;
-		i = 1;
 		write(STDOUT_FILENO, "#cisfun$ ", 9);
 		bytes_read = getline(&buf, &buf_size, stdin);
+		if (str_compare(buf, "exit\n") == TRUE)
+			break;
+		if (bytes_read == -1)
+		{
+			write(STDERR_FILENO, "getline failed\n", 14);
+			_exit(EXIT_FAILURE);
+		}
 		buf[bytes_read - 1] = '\0';
+		if (buf[0] != '/')
+		{
+			tmp = malloc(buf_size + 1);
+			if (tmp == NULL)
+			{
+				perror("malloc failed\n");
+				exit(EXIT_FAILURE);
+			}
+			str_cmb(&tmp, "/", buf);
+			free(buf);
+			buf = tmp;
+		}
 		ptr = buf;
+		i = 2;
+		while (*ptr != '\0')
+		{
+			if (*ptr == ' ')
+				i++;
+			ptr++;
+		}
+		args = malloc(sizeof(char *) * i);
+		if (args == NULL)
+		{
+			write(STDERR_FILENO, "malloc failed\n", 14);
+			_exit(EXIT_FAILURE);
+		}
+		ptr = buf;
+		i = 1;
 		while (*ptr != '\0')
 		{
 			if (*ptr == ' ')
@@ -86,27 +71,25 @@ int main(void)
 				*ptr = '\0';
 				ptr++;
 				args[i] = ptr;
-				if (i < 3)
-					i++;
+				i++;
 			}
 			ptr++;
 		}
-		if (bytes_read == -1)
+		args[0] = NULL;
+		ptr = buf;
+		args[0] = malloc(100);
+		if (args[0] == NULL)
 		{
-			write(STDERR_FILENO, "getline failed\n", 14);
-			_exit(EXIT_FAILURE);
+			perror("malloc failed\n");
+			exit(EXIT_FAILURE);
 		}
-		if (access(buf, F_OK) != 0)
-		{
-			args[0] = malloc(100);
-			while (*path_ptr != NULL && access(args[0], F_OK) != 0)
+		str_cmb(&args[0], buf, "");
+		args[i] = NULL;
+			while (*path_ptr != NULL && access(args[0], X_OK) != 0)
 			{
 				str_cmb(&args[0], *path_ptr, buf);
 				path_ptr++;
 			}
-		}
-		else
-			args[0] = buf;
 		pid = fork();
 		if (pid == -1)
 		{
@@ -120,10 +103,11 @@ int main(void)
 			_exit(EXIT_FAILURE);
 		}
 		wait(&status);
+		free(args[0]);
+		free(args);
 	}
 	free(path_var);
 	free(buf);
-	free(args[0]);
 
 	return(0);
 }

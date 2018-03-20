@@ -13,7 +13,7 @@ int _strlen(char *str)
 	return (i);
 }
 
-char *_strcpy(char *src)
+char *_strdup(char *src)
 {
 	int len = _strlen(src);
 	char *dest = NULL;
@@ -35,6 +35,62 @@ char *_strcpy(char *src)
 	return (dest);
 }
 
+char *str_search(char *needle, char *haystack)
+{
+	char *h_ptr = haystack;
+	char *n_ptr;
+
+	while (*haystack != '\0')
+	{
+		n_ptr = needle;
+		h_ptr = haystack;
+		while (*n_ptr == *h_ptr)
+		{
+			h_ptr++;
+			n_ptr++;
+		}
+		if (*n_ptr == '\0')
+			return (haystack);
+
+		haystack++;
+	}
+
+	return (NULL);
+}
+
+/*char *_getenv(char *env_var)
+{
+	extern char **environ;
+	char **env_ptr = environ;
+	char *env_str;
+
+	while (env_ptr != NULL)
+	{
+		env_str = str_search(env_var, *env_ptr);
+		if (env_str != NULL)
+			return (env_str);
+
+		env_ptr++;
+	}
+
+	return (NULL);
+	}*/
+
+char *get_array_element(char **array, char *element_name)
+{
+	char *str;
+
+	while (*array != NULL)
+	{
+		str = str_search(element_name, *array);
+		if (str != NULL)
+			return (*array);
+		array++;
+	}
+
+	return (NULL);
+}
+
 char **make_array(char *str, char delim)
 {
 	char *str_ptr = str;
@@ -49,7 +105,7 @@ char **make_array(char *str, char delim)
 		str_ptr++;
 	}
 
-	array = malloc(i * sizeof(char *));
+	array = malloc(i * sizeof(char **));
 	if (array == NULL)
 		err_exit("./hsh", 'm');
 
@@ -72,4 +128,3 @@ char **make_array(char *str, char delim)
 
 	return (array);
 }
-

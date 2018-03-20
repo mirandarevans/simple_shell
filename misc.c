@@ -19,9 +19,10 @@ void err_exit(char *prog, char err_type)
 		exit(EXIT_FAILURE);
 		break;
 	case 'n':
-		write(STDERR_FILENO, prog, 20);
-		perror(": no such file or directory\n");
-		exit(EXIT_FAILURE);
+		/*write(STDERR_FILENO, prog, 10);*/
+		write(STDERR_FILENO, "hsh: ", 5);
+		perror(prog);
+		exit(127);
 		break;
 	case 'e':
 		write(STDERR_FILENO, prog, 20);
@@ -83,7 +84,6 @@ ssize_t _getline(char **lineptr, size_t *n, int fd)
 	{
 		if (fflush(NULL) != 0)
 			err_exit("./hsh", 'e');
-		
 		return (r);
 	}
 	buffer = malloc(*n);
@@ -110,4 +110,60 @@ ssize_t _getline(char **lineptr, size_t *n, int fd)
 	lineptr = &buffer;
 
 	return i;
+}
+
+char *_itoa(int n)
+{
+	char *buf = malloc(10);
+	char *ptr = buf;
+	int is_min = FALSE;
+	int i_mask = 1000000000;
+	int digit = 0;
+
+	if (n == INT_MIN)
+	{
+		*ptr = '-';
+		ptr++;
+		n = INT_MAX;
+		is_min = TRUE;
+	}
+
+	if (n < 0)
+	{
+		*ptr = '-';
+		ptr++;
+		n = -n;
+	}
+
+	while (i_mask > 9 && digit == 0)
+	{
+		digit = n / i_mask;
+		n %= i_mask;
+		i_mask /= 10;
+	}
+
+	if (digit != 0)
+	{
+		*ptr = digit + '0';
+		ptr++;
+	}
+
+	while (i_mask > 9)
+	{
+		digit = n / i_mask;
+		*ptr = digit + '0';
+		ptr++;
+		n %= i_mask;
+		i_mask /= 10;
+	}
+
+	if (is_min == TRUE)
+		n += 1;
+
+	*ptr = n + '0';
+	ptr++;
+	*ptr = '\0';
+
+	return (buf);
+
 }

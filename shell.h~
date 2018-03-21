@@ -20,7 +20,6 @@
 #define EXIT_SHELL_CODE 4
 #define SETENV 5
 #define UNSETENV 6
-#define CHANGEDIR 7
 
 int _strlen(char *str);
 
@@ -49,8 +48,6 @@ int built_ins(char **args, int *i);
 int _setenv(const char *name, const char *value, int overwrite);
 
 int _unsetenv(const char *name);
-
-int change_dir(char *name);
 
 void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
 

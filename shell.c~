@@ -50,7 +50,7 @@ int main(void)
 
 		args = make_array(buf, ' ');
 
-		args[0] = malloc(PATH_MAX);
+		args[0] = malloc(100);
 		if (args[0] == NULL)
 			exit(EXIT_FAILURE);
 

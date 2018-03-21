@@ -43,3 +43,40 @@ void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size)
 
 	return (new_ptr);
 }
+
+int execute_command(char **args, char **path_ptr, char *buf, char *buf_end)
+{
+	int status;
+	char **args_ptr = args;
+	pid_t pid;
+	extern char **environ;
+
+	while (*path_ptr != NULL && access(args[0], X_OK) != 0)
+	{
+		_strconcat(&args[0], *path_ptr, buf);
+		path_ptr++;
+	}
+
+	pid = fork();
+
+	if (pid == -1)
+	{
+		exit(EXIT_FAILURE);
+	}
+	if (pid == 0)
+	{
+		execve(args[0], args, environ);
+		exit(EXIT_FAILURE);
+	}
+	wait(&status);
+
+	while (*args_ptr != NULL)
+	{
+		if (*args_ptr < buf || *args_ptr > buf_end)
+			free(*args_ptr);
+
+		args_ptr++;
+	}
+
+	return (status);
+}

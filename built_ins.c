@@ -1,7 +1,16 @@
 #include "shell.h"
 
+/**
+ * built_ins - manages the built-in commands
+ * @args: arguments from the command line
+ * @i: an int used for the exit code if the user is exiting
+ *
+ * Return: an int that determines what the main process will do
+ */
 int built_ins(char **args, int *i)
 {
+	int skip_fork = FALSE;
+
 	if (str_compare("/exit", args[0]) == TRUE && args[1] != NULL)
 	{
 		*i = _atoi(args[1]);
@@ -14,19 +23,19 @@ int built_ins(char **args, int *i)
 	else if (str_compare("/setenv", args[0]) == TRUE && args[1] != NULL && args[2] != NULL)
 	{
 		_setenv(args[1], args[2], 1);
-		return (SETENV);
+		skip_fork = TRUE;
 	}
 	else if (str_compare("/unsetenv", args[0]) == TRUE && args[1] != NULL)
 	{
 		_unsetenv(args[1]);
-		return(UNSETENV);
+		skip_fork = TRUE;
 	}
 	else if (str_compare("/cd", args[0]) == TRUE)
 	{
 		change_dir(args[1]);
-		return(CHANGEDIR);
+		skip_fork = TRUE;
 	}
-	else
+
 		while (*args != NULL)
 		{
 			if (**args == '$')
@@ -37,22 +46,37 @@ int built_ins(char **args, int *i)
 			if (**args == '#')
 			{
 				*args = NULL;
-				args++;
-				while (*args != NULL)
-				{
-					free(*args);
-					args++;
-				}
-				free(*args);
+				if (skip_fork == TRUE)
+					return (SKIP_FORK);
+
 				return (DO_EXECVE);
+			}
+			if (**args == ';')
+			{
+				*args = NULL;
+				if (skip_fork == TRUE)
+					return (SEP_SKIP_FORK);
+
+				return (SEP);
 			}
 			args++;
 		}
 
+	if (skip_fork == TRUE)
+		return (SKIP_FORK);
+
 	return (DO_EXECVE);
 }
 
-
+/**
+ * _setenv - sets and environmental variable
+ * @name: name of the variable
+ * @value: value to set the variable to
+ * @overwrite: function won't do anthing if the variable doesn't already exist
+ * and overwrite is 0
+ *
+ * Return: 0 on success
+ */
 int _setenv(const char *name, const char *value, int overwrite)
 {
 	extern char **environ;
@@ -98,6 +122,12 @@ int _setenv(const char *name, const char *value, int overwrite)
 	return (0);
 }
 
+/**
+ * _unsetenv - deletes an environmental variable
+ * @name: name of variable
+ *
+ * Return: 0 if successful
+ */
 int _unsetenv(const char *name)
 {
 	extern char **environ;
@@ -119,6 +149,12 @@ int _unsetenv(const char *name)
 	return (0);
 }
 
+/**
+ * change_dir - changes the current working directory
+ * @name: name of directory to change to
+ *
+ * Return: 0 if successful
+ */
 int change_dir(char *name)
 {
 	extern char **environ;

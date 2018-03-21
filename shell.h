@@ -18,9 +18,9 @@
 #define DO_EXECVE 2
 #define EXIT_SHELL 3
 #define EXIT_SHELL_CODE 4
-#define SETENV 5
-#define UNSETENV 6
-#define CHANGEDIR 7
+#define SKIP_FORK 5
+#define SEP 6
+#define SEP_SKIP_FORK 7
 
 int _strlen(char *str);
 
@@ -53,5 +53,7 @@ int _unsetenv(const char *name);
 int change_dir(char *name);
 
 void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+
+int execute_command(char **args, char **path_ptr, char *buf, char *buf_end);
 
 #endif

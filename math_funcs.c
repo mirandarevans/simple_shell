@@ -1,5 +1,11 @@
 #include "shell.h"
 
+/**
+ * _itoa - converts an int into a string
+ * @n: int to be converted
+ *
+ * Return: the converted number
+ */
 char *_itoa(int n)
 {
 	char *buf = malloc(12);
@@ -54,6 +60,12 @@ char *_itoa(int n)
 	return (buf);
 }
 
+/**
+ * _atoi - converts a string into a number
+ * @s: string to be converted
+ *
+ * Return: the converted number
+ */
 int _atoi(char *s)
 {
 	int n = 0;
@@ -81,7 +93,7 @@ int _atoi(char *s)
 			s_int = *s - 48;
 			if (n >= 0)
 				n = (n * 10) + s_int;
-	       		else
+			else
 				n = (n * 10) - s_int;
 		}
 		s++;

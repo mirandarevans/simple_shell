@@ -1,13 +1,17 @@
 #include "shell.h"
 
+/**
+ * get_array_element - gets an element of an array
+ * @array: array to be searched
+ * @element_name: name of element to be found
+ *
+ * Return: the array element, or NULL if it is not found
+ */
 char *get_array_element(char **array, char *element_name)
 {
-	char *str;
-
 	while (*array != NULL)
 	{
-		str = str_search(element_name, *array);
-		if (str != NULL)
+		if (str_compare(*array, element_name, PREFIX) == TRUE)
 			return (*array);
 
 		array++;
@@ -16,7 +20,16 @@ char *get_array_element(char **array, char *element_name)
 	return (NULL);
 }
 
-char **make_array(char *str, char delim)
+/**
+ * make_array - makes a list from a buffer
+ * @str: the buffer
+ * @delim: character to mark the end of a list entry
+ * @if_sep: if the string has semicolons, if_sep becomes the location after the
+ * semicolon
+ *
+ * Return: a pointer to the list
+ */
+char **make_array(char *str, char delim, char **if_sep)
 {
 	char *str_ptr = str;
 	unsigned int i = 2;
@@ -24,7 +37,9 @@ char **make_array(char *str, char delim)
 
 	while (*str_ptr != '\0')
 	{
-		if (*str_ptr == delim)
+		if (*str_ptr == ';')
+		    break;
+		if (*str_ptr == delim && *(str_ptr + 1) != '\0')
 			i++;
 
 		str_ptr++;
@@ -44,8 +59,18 @@ char **make_array(char *str, char delim)
 		{
 			*str_ptr = '\0';
 			str_ptr++;
-			array[i] = str_ptr;
-			i++;
+			if (*str_ptr == ';')
+			{
+				array[i] = NULL;
+				if (*(str_ptr + 1) != '\0' && *(str_ptr + 2) != '\0')
+					*if_sep = str_ptr + 2;
+				break;
+			}
+			if (*str_ptr != '\0')
+			{
+				array[i] = str_ptr;
+				i++;
+			}
 		}
 		str_ptr++;
 	}
@@ -54,6 +79,13 @@ char **make_array(char *str, char delim)
 	return (array);
 }
 
+/**
+ * list_len - finds the length of a list, or the index of an entry
+ * @list: list to be evaluated
+ * @entry: entry to be indexed
+ *
+ * Return: length or index if success, -1 if failure
+ */
 int list_len(char **list, char *entry)
 {
 	int i = 0;
@@ -72,7 +104,7 @@ int list_len(char **list, char *entry)
 	{
 		while (*list != NULL)
 		{
-			if (str_search(entry, *list) != NULL)
+			if (str_compare(*list, entry, PREFIX) == TRUE)
 				return (i);
 
 			i++;
@@ -83,6 +115,12 @@ int list_len(char **list, char *entry)
 	return (-1);
 }
 
+/**
+ * array_cpy - copies an array
+ * @old_array - array to be copied
+ *
+ * Return: the new array
+ */
 char **array_cpy(char **old_array)
 {
 	char **new_array = NULL;

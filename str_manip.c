@@ -1,8 +1,17 @@
 #include "shell.h"
 
+/**
+ *  _strlen - returns length of a string
+ * @str: string to be evaluated
+ *
+ * Return: the length of the string
+ */
 int _strlen(char *str)
 {
 	int i = 0;
+
+	if (str == NULL)
+		return (0);
 
 	while (*str != '\0')
 	{
@@ -13,13 +22,18 @@ int _strlen(char *str)
 	return (i);
 }
 
+/**
+ * _strdup - allocates a space in memory for a copy of a string
+ * @src: string a copy is made of
+ *
+ * Return: a pointer to the copy, or NULL if failure
+ */
 char *_strdup(char *src)
 {
 	int len = _strlen(src);
-	char *dest = NULL;
+	char *dest = malloc(len + 1);
 	char *ptr;
 
-	dest = malloc(len + 1);
 	if (dest == NULL)
 		exit(EXIT_FAILURE);
 
@@ -37,52 +51,60 @@ char *_strdup(char *src)
 	return (dest);
 }
 
-char *str_search(char *needle, char *haystack)
+/**
+ * str_concat - concatenates two strings
+ * @s1: first string
+ * @s2: second string
+ *
+ * I apologize for the lack of spacing - holberton checker reqs
+ *
+ * Return: a pointer to the new string, or NULL if failure
+ */
+char *str_concat(char *s1, char *s2)
 {
-	char *h_ptr = haystack;
-	char *n_ptr;
+	int len = _strlen(s1) + _strlen(s2);
+	char *dest = malloc(len + 1);
+	char *ptr = dest;
 
-	while (*haystack != '\0')
+	if (s1 != NULL)
 	{
-		n_ptr = needle;
-		h_ptr = haystack;
-		while (*n_ptr == *h_ptr && *h_ptr != '\0')
+		while (*s1 != '\0')
 		{
-			h_ptr++;
-			n_ptr++;
+			*ptr = *s1;
+			ptr++;
+			s1++;
 		}
-		if (*n_ptr == '\0')
-			return (haystack);
-
-		haystack++;
 	}
 
-	return (NULL);
-}
-
-void _strconcat(char **buffer, char *str1, char *str2)
-{
-	char *ptr = *buffer;
-
-	while (*str1 != '\0')
+	if (s2 != NULL)
 	{
-		*ptr = *str1;
-		ptr++;
-		str1++;
-	}
-
-	while (*str2 != '\0')
-	{
-		*ptr = *str2;
-		ptr++;
-		str2++;
-	}
+                while (*s2 != '\0')
+		{
+                        *ptr = *s2;
+                        ptr++;
+                        s2++;
+                }
+        }
 
 	*ptr = '\0';
+
+	return (dest);
 }
 
-int str_compare(char *s1, char *s2)
+/**
+ * str_compare - compare two string
+ * @s1: string to be compared
+ * @s2: string to be compared
+ * @pref_or_match: if string needs to be matched exactly or if just a prefix
+ * needs to be matched
+ *
+ * Return: difference between strings
+ */
+int str_compare(char *s1, char *s2, int pref_or_match)
 {
+	if (s1 == NULL || s2 == NULL)
+		return (FALSE);
+
 	while (*s1 != '\0' && *s2 != '\0')
 	{
 		if (*s1 != *s2)
@@ -91,8 +113,12 @@ int str_compare(char *s1, char *s2)
 		s1++;
 		s2++;
 	}
-	if (*s1 != *s2)
-		return (FALSE);
 
-	return (TRUE);
+	if (pref_or_match == PREFIX)
+		return (TRUE);
+
+	if (*s1 == *s2)
+		return (TRUE);
+
+	return (FALSE);
 }

@@ -1,15 +1,15 @@
 #include "shell.h"
 
+int status = 0;
+
 /**
  * main - executes commands from the terminal
- * @ac: number of elements in av
- * @av: av[0] is how shell was called in the command line
  *
  * Return: 0, or another number if desired
  */
 int main(void)
 {
-	int status = 0;
+/*	int status = 0;*/
 	int bytes_read;
 	int is_separated = FALSE;
 	int i;
@@ -18,6 +18,9 @@ int main(void)
 	char *buf_ptr;
 	char *buf_tmp;
 	char **args = NULL;
+/*	extern char **environ;*/
+
+	environ = array_cpy(environ, list_len(environ, NULL));
 
 	/*signal(SIGINT,SIG_IGN);*/
 
@@ -30,7 +33,7 @@ int main(void)
 		if (is_separated == FALSE)
 		{
 			if (isatty(STDIN_FILENO) == 1)
-				write(STDOUT_FILENO, "#c_is_fun$ ", 11);
+				write(STDOUT_FILENO, "my_shell$ ", 10);
 
 			bytes_read = getline(&buf, &buf_size, stdin);
 			if (bytes_read == -1)
@@ -49,7 +52,7 @@ int main(void)
 		else
 			is_separated = FALSE;
 
-		i = command_manager(args, &status);
+		i = command_manager(args);
 
 		free(args);
 
@@ -57,7 +60,8 @@ int main(void)
 			break;
 	}
 	free(buf);
-
+	alias_func(NULL, TRUE);
+	free_array(environ);
 	if (i == EXIT_SHELL_CODE)
 		return (status % 255);
 

@@ -12,18 +12,42 @@
 #include <limits.h>
 #include <signal.h>
 
-enum macros {FALSE, TRUE, NEITHER, MATCH, PREFIX, EXIT_SHELL, EXIT_SHELL_CODE,
-	     SKIP_FORK, DO_EXECVE};
+#define FALSE 0
+#define TRUE 1
+#define NEITHER 2
+#define MATCH 3
+#define PREFIX 4
+#define EXIT_SHELL 5
+#define EXIT_SHELL_CODE 6
+#define SKIP_FORK 7
+#define DO_EXECVE 8
 
-int command_manager(char **args, int *status);
+/**
+ * struct Alias - singly linked list
+ * @name: name of alias
+ * @value: command that alias calls
+ * @next: points to next node
+ */
+typedef struct Alias
+{
+	char *name;
+	char *value;
+	struct Alias *next;
+} alias;
 
-int built_ins(char **args, int *status);
+extern char **environ;
 
-int and_or(char **args, char operator, int last_compare, int *status);
+extern int status;
+
+int command_manager(char **args);
+
+int built_ins(char **args);
+
+int and_or(char **args, char operator, int last_compare);
 
 int check_command(char **args, char **path_var);
 
-int execute_command(char **args, int *status);
+int execute_command(char **args);
 
 char *parser(char *old_buf, size_t old_size);
 
@@ -37,18 +61,33 @@ int str_compare(char *s1, char *s2, int pref_or_match);
 
 char *get_array_element(char **array, char *element_name);
 
-/*char **make_array(char *str, char delim);*/
 char **make_array(char *str, char delim, char **if_sep);
 
 int list_len(char **list, char *entry);
 
-char **array_cpy(char **old_array);
+char **array_cpy(char **old_array, int new_size);
+
+int free_array(char **args);
 
 int _setenv(const char *name, const char *value, int overwrite);
 
 int _unsetenv(const char *name);
 
 int change_dir(char *name);
+
+int alias_func(char **args, int free);
+
+int free_aliases(alias *alias_ptr);
+
+int check_if_alias(char **args, alias *alias_ptr);
+
+int print_aliases(alias *alias_ptr);
+
+int print_alias_value(char *arg, alias *alias_ptr);
+
+int set_alias_value(char *arg, alias *alias_ptr, char *new_value);
+
+int print_env(void);
 
 char *_itoa(int n);
 

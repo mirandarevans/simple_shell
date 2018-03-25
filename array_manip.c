@@ -118,18 +118,16 @@ int list_len(char **list, char *entry)
 /**
  * array_cpy - copies an array
  * @old_array - array to be copied
+ * @new_size - size of new array
  *
  * Return: the new array
  */
-char **array_cpy(char **old_array)
+char **array_cpy(char **old_array, int new_size)
 {
 	char **new_array = NULL;
 	char **ptr_array;
-	int len;
 
-	len = list_len(old_array, NULL);
-
-	new_array = malloc(sizeof(char **) * len);
+	new_array = malloc(sizeof(char **) * new_size);
 
 	ptr_array = new_array;
 	while (*old_array != NULL)
@@ -141,4 +139,19 @@ char **array_cpy(char **old_array)
 	*ptr_array = NULL;
 
 	return (new_array);
+}
+
+int free_array(char **args)
+{
+	char **ptr = args;
+
+	while (*ptr != NULL)
+	{
+		free(*ptr);
+		ptr++;
+	}
+
+	free(args);
+
+	return (TRUE);
 }

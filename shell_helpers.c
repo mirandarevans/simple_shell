@@ -1,5 +1,7 @@
 #include "shell.h"
 
+int status;
+
 /**
  * command_manager - manages the process a command goes through to get executed
  * @args: command and arguments
@@ -7,7 +9,7 @@
  *
  * Return: TRUE if success, FALSE if failure
  */
-int command_manager(char **args, int *status)
+int command_manager(char **args)
 {
 	char **args_ptr = args;
 	int prev_eval = NEITHER;
@@ -35,14 +37,14 @@ int command_manager(char **args, int *status)
 		if (next_op == 'c')
 			break;
 
-		prev_eval = and_or(args, prev_op, prev_eval, status);
+		prev_eval = and_or(args, prev_op, prev_eval);
 		prev_op = next_op;
 		args = args_ptr;
 	}
 
 	if (next_op == 'c')
 	{
-		what_do = execute_command(args, status);
+		what_do = execute_command(args);
 
 		if (what_do == EXIT_SHELL)
 			return (EXIT_SHELL);
@@ -62,17 +64,17 @@ int command_manager(char **args, int *status)
  * Return: SKIP_FORK if built in, DO_EXECVE if not a built in, EXIT_SHELL if
  * exit shell, EXIT_SHELL_CODE if exiting with a particular code
  */
-int built_ins(char **args, int *status)
+int built_ins(char **args)
 {
-	int skip_fork = FALSE;
 	char **args_ptr = args;
+	int i;
 
 	while (*args_ptr != NULL)
 	{
 		if (**args_ptr == '$')
                 {
-                        if (str_compare("$?", *args, MATCH) == TRUE)
-                                *args = _itoa(*status);
+                        if (str_compare("$?", *args_ptr, MATCH) == TRUE)
+                                *args_ptr = _itoa(status);
                 }
                 if (**args_ptr == '#')
                 {
@@ -81,34 +83,46 @@ int built_ins(char **args, int *status)
                 }
 		args_ptr++;
 	}
-
-	if (str_compare("exit", args[0], MATCH) == TRUE && args[1] != NULL)
+	i = alias_func(args, FALSE);
+	if (i == DO_EXECVE)
+		return (DO_EXECVE);
+	if (i == SKIP_FORK)
+		return (SKIP_FORK);
+	if (i == FALSE)
 	{
-		*status = _atoi(args[1]);
+		status = 1;
+		return (SKIP_FORK);
+	}
+
+	if (str_compare("exit", *args, MATCH) == TRUE && args[1] != NULL)
+	{
+		status = _atoi(args[1]);
 		return (EXIT_SHELL_CODE);
 	}
-	else if (str_compare("exit", args[0], MATCH) == TRUE)
+	else if (str_compare("exit", *args, MATCH) == TRUE)
 	{
 		return (EXIT_SHELL);
 	}
-	else if (str_compare("setenv", args[0], MATCH) == TRUE && args[1] != NULL && args[2] != NULL)
+	else if (str_compare("setenv", *args, MATCH) == TRUE && args[1] != NULL && args[2] != NULL)
 	{
-		*status = _setenv(args[1], args[2], 1);
-		skip_fork = TRUE;
-	}
-	else if (str_compare("unsetenv", args[0], MATCH) == TRUE && args[1] != NULL)
-	{
-		*status = _unsetenv(args[1]);
-		skip_fork = TRUE;
-	}
-	else if (str_compare("cd", args[0], MATCH) == TRUE)
-	{
-		*status = change_dir(args[1]);
-		skip_fork = TRUE;
-	}
-
-	if (skip_fork == TRUE)
+		status = _setenv(args[1], args[2], 1);
 		return (SKIP_FORK);
+	}
+	else if (str_compare("unsetenv", *args, MATCH) == TRUE && args[1] != NULL)
+	{
+		status = _unsetenv(args[1]);
+		return (SKIP_FORK);
+	}
+	else if (str_compare("cd", *args, MATCH) == TRUE)
+	{
+		status = change_dir(args[1]);
+		return (SKIP_FORK);
+	}
+	else if (str_compare("env", *args, MATCH) == TRUE)
+	{
+		status = print_env();
+		return (SKIP_FORK);
+	}
 
 	return (DO_EXECVE);
 }
@@ -119,13 +133,13 @@ int built_ins(char **args, int *status)
  * @last_compare: if last command in logic evaluated to true or false
  * @status: status of last child process
  */
-int and_or(char **args, char operator, int last_compare, int *status)
+int and_or(char **args, char operator, int last_compare)
 {
 	int i;
 
 	if (last_compare == NEITHER)
 	{
-		i = execute_command(args, status);
+		i = execute_command(args);
 		if (i == EXIT_SHELL)
 			return (EXIT_SHELL);
 		if (i == EXIT_SHELL_CODE)
@@ -137,7 +151,7 @@ int and_or(char **args, char operator, int last_compare, int *status)
 	}
 	if (last_compare == TRUE && operator == '&')
 	{
-		i = execute_command(args, status);
+		i = execute_command(args);
 		if (i == EXIT_SHELL)
                         return (EXIT_SHELL);
                 if (i == EXIT_SHELL_CODE)
@@ -148,7 +162,7 @@ int and_or(char **args, char operator, int last_compare, int *status)
 
 	if (last_compare == FALSE && operator == '|')
 	{
-		i = execute_command(args, status);
+		i = execute_command(args);
 		if (i == EXIT_SHELL)
                         return (EXIT_SHELL);
                 if (i == EXIT_SHELL_CODE)
@@ -190,7 +204,6 @@ int check_command(char **args, char **path_var)
 	if (access(*args, X_OK) == 0)
 		return (TRUE);
 
-	write(2, "error\n", 6);
 	return (FALSE);
 }
 
@@ -201,14 +214,14 @@ int check_command(char **args, char **path_var)
  *
  * Return: TRUE if success, FALSE if not
  */
-int execute_command(char **args, int *status)
+int execute_command(char **args)
 {
-	extern char **environ;
+/*	extern char **environ;*/
 	char *path_str;
 	char **path_var;
 	char *buf_ptr = *args;
 	pid_t pid;
-	int what_do = built_ins(args, status);
+	int what_do = built_ins(args);
 
 	if (what_do == DO_EXECVE)
 	{
@@ -231,7 +244,7 @@ int execute_command(char **args, int *status)
 			execve(args[0], args, environ);
 			exit(EXIT_FAILURE);
 		}
-		wait(status);
+		wait(&status);
 
 		free(path_str);
 		free(path_var);
@@ -261,7 +274,7 @@ int execute_command(char **args, int *status)
 	if (what_do == EXIT_SHELL_CODE)
 		return (EXIT_SHELL_CODE);
 
-	if (*status != 0)
+	if (status != 0)
 		return (FALSE);
 
 	return (TRUE);

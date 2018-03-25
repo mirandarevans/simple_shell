@@ -11,7 +11,6 @@
  */
 int _setenv(const char *name, const char *value, int overwrite)
 {
-	extern char **environ;
 	char **new_environ;
 	char *buffer;
 	char *buf_ptr;
@@ -21,10 +20,6 @@ int _setenv(const char *name, const char *value, int overwrite)
 	if (element_ptr != NULL && overwrite == 0)
 		exit(EXIT_FAILURE);
 
-	/*buffer = malloc(_strlen((char *)name) + _strlen((char *)(value)) + 2);
-	if (buffer == NULL)
-		exit(EXIT_FAILURE);
-	*/
 	buffer = str_concat((char *)name, "=");
 	buf_ptr = str_concat(buffer, (char *)value);
 	free(buffer);
@@ -33,14 +28,10 @@ int _setenv(const char *name, const char *value, int overwrite)
 	if (element_ptr == NULL)
 	{
 		len = list_len(environ, NULL);
-
-		new_environ = malloc(sizeof(char **) * (len + 1));
-		if (new_environ == NULL)
-			exit(EXIT_FAILURE);
-
-		new_environ = array_cpy(environ);
+		new_environ = array_cpy(environ, len + 1);
 		new_environ[len - 1] = buffer;
 		new_environ[len] = NULL;
+		free_array(environ);
 		environ = new_environ;
 		return (0);
 
@@ -48,6 +39,7 @@ int _setenv(const char *name, const char *value, int overwrite)
 	else
 	{
 		len = list_len(environ, (char *)name);
+		free(environ[len]);
 		environ[len] = buffer;
 	}
 
@@ -62,7 +54,6 @@ int _setenv(const char *name, const char *value, int overwrite)
  */
 int _unsetenv(const char *name)
 {
-	extern char **environ;
 	char **env_ptr;
 	int len = list_len(environ, (char *)name);
 
@@ -89,7 +80,6 @@ int _unsetenv(const char *name)
  */
 int change_dir(char *name)
 {
-	extern char **environ;
 	char *home;
 	char *pwd;
 	char path_buffer[PATH_MAX];
@@ -157,71 +147,72 @@ int change_dir(char *name)
 
 	return (-1);
 }
-/*
-typedef struct alias
-{
-	char *name;
-	char *value;
-	alias *next;
-} alias;
 
-int alias_func(char **args)
+/**
+ * alias_func - deals with command aliases
+ * @args: arguments from command line
+ * @to_free: indicated if aliases need to be freed (exiting shell);
+ *
+ * Return: TRUE if exiting, FALSE if the command is not "alias" or an alias,
+ * SKIP_FORK if success
+ */
+int alias_func(char **args, int to_free)
 {
 	static alias head = {NULL, NULL, NULL};
-	alias *alias_ptr = head.next;
 	char *char_ptr;
+	int no_error = TRUE;
+
+	if (to_free == TRUE)
+		return (free_aliases(head.next));
+
+	if (str_compare("alias", *args, MATCH) != TRUE)
+		return (check_if_alias(args, head.next));
 
 	args++;
 
 	if (*args == NULL)
-	{
-		while (alias_ptr != NULL)
-		{
-			write(STDOUT_FILENO, alias_ptr->name, _strlen(alias_ptr->name));
-			write(STDOUT_FILENO, "=", 1);
-			write(STDOUT_FILENO, alias_ptr->value, _strlen(alias_ptr->value));
-			ptr = ptr->next;
-		}
-		return (TRUE);
-	}
-	else
-	{
-		while (*args != NULL)
-		{
-			alias_ptr = &head;
-			char_ptr = *args;
-			while (*char_ptr != '\0' && *char_ptr != '=')
-				char_ptr++;
+		return (print_aliases(head.next));
 
-			if (*char_ptr == '\0')
-			{
-				while (alias_ptr != NULL)
-				{
-					if (str_compare(*args, alias_ptr->name, MATCH) == TRUE)
-					{
-						write(STDOUT_FILENO, *args, _strlen(*args));
-						write(STDOUT_FILENO, "=", 1);
-						write(STDOUT_FILENO, alias_ptr->value, _strlen(alias_ptr->value));
-						break;
-					}
-					alias_ptr = alias_ptr->next;
-				}
-			}
-			else
-			{
-				while (alias_ptr->next != NULL)
-				{
-					alias_ptr = alias_ptr->next;
-				}
-				alias_ptr->next = malloc(sizeof(alias *));
-				alias_ptr = alias_ptr->next;
-				*char_ptr = '\0';
-				alias_ptr->name = _strdup(*args);
-				char_ptr++;
-				alias_ptr->value = _strdup(char_ptr);
-			}
-			args++;
+	while (*args != NULL)
+	{
+		char_ptr = *args;
+		while (*char_ptr != '\0' && *char_ptr != '=')
+			char_ptr++;
+
+		if (*char_ptr == '\0' || char_ptr == *args)
+		{
+			if (print_alias_value(*args, &head) == FALSE)
+				no_error = FALSE;
 		}
+		else
+		{
+			*char_ptr = '\0';
+			char_ptr++;
+			set_alias_value(*args, &head, char_ptr);
+		}
+		args++;
 	}
+	if (no_error == FALSE)
+		return (FALSE);
+
+	return (SKIP_FORK);
 }
-*/
+
+/**
+ * print_env - prints the environment
+ *
+ * Return: TRUE
+ */
+int print_env(void)
+{
+	char **ptr = environ;
+
+	while (*ptr != NULL)
+	{
+		write(STDOUT_FILENO, *ptr, _strlen(*ptr));
+		write(STDOUT_FILENO, "\n", 1);
+		ptr++;
+	}
+
+	return (TRUE);
+}

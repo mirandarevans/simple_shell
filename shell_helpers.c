@@ -5,7 +5,6 @@ int status;
 /**
  * command_manager - manages the process a command goes through to get executed
  * @args: command and arguments
- * @status: status of the last child process
  *
  * Return: TRUE if success, FALSE if failure
  */
@@ -13,6 +12,7 @@ int command_manager(char **args)
 {
 	char **args_ptr = args;
 	int prev_eval = NEITHER;
+	int no_err = TRUE;
 	char prev_op = 'c';
 	char next_op = 'c';
 	int what_do;
@@ -38,6 +38,8 @@ int command_manager(char **args)
 			break;
 
 		prev_eval = and_or(args, prev_op, prev_eval);
+		if (prev_eval == FALSE)
+			no_err = FALSE;
 		prev_op = next_op;
 		args = args_ptr;
 	}
@@ -53,13 +55,15 @@ int command_manager(char **args)
 			return (EXIT_SHELL_CODE);
 	}
 
+	if (no_err == FALSE || what_do == FALSE)
+		return (FALSE);
+
 	return (TRUE);
 }
 
 /**
  * built_ins - checks if a command is a built in
  * @args: command and arguments
- * @status: status of last child process
  *
  * Return: SKIP_FORK if built in, DO_EXECVE if not a built in, EXIT_SHELL if
  * exit shell, EXIT_SHELL_CODE if exiting with a particular code
@@ -116,6 +120,8 @@ int built_ins(char **args)
 	else if (str_compare("cd", *args, MATCH) == TRUE)
 	{
 		status = change_dir(args[1]);
+		if (status == 2)
+			err_message(args);
 		return (SKIP_FORK);
 	}
 	else if (str_compare("env", *args, MATCH) == TRUE)
@@ -131,7 +137,6 @@ int built_ins(char **args)
  * and_or - deals with command line logical operators
  * @args: command and arguments
  * @last_compare: if last command in logic evaluated to true or false
- * @status: status of last child process
  */
 int and_or(char **args, char operator, int last_compare)
 {
@@ -181,45 +186,50 @@ int and_or(char **args, char operator, int last_compare)
  *
  * Return: TRUE if valid command, FALSE if not
  */
-int check_command(char **args, char **path_var)
+char *check_command(char **args, char **path_var)
 {
 	char *command_buf;
+	char *full_buf;
 
 	if (**args != '/' || **args != '.')
 		command_buf = str_concat("/", *args);
 	else
 		command_buf = _strdup(*args);
 
-	*args = _strdup(command_buf);
+	full_buf = _strdup(command_buf);
 
-	while (*path_var != NULL && access(args[0], X_OK) != 0)
+	while (*path_var != NULL && access(full_buf, X_OK) != 0)
 	{
-		free(*args);
-		*args = str_concat(*path_var, command_buf);
+		free(full_buf);
+		full_buf = str_concat(*path_var, command_buf);
 		path_var++;
 	}
 
+	if (access(full_buf, X_OK) != 0)
+	{
+		status = 127;
+		err_message(args);
+		free(command_buf);
+		free(full_buf);
+		return (NULL);
+	}
+
 	free(command_buf);
-
-	if (access(*args, X_OK) == 0)
-		return (TRUE);
-
-	return (FALSE);
+	return (full_buf);
 }
 
 /**
  * execute_command - executes a command
  * @args: command and arguments
- * @status: status of last child process
  *
  * Return: TRUE if success, FALSE if not
  */
 int execute_command(char **args)
 {
-/*	extern char **environ;*/
 	char *path_str;
 	char **path_var;
 	char *buf_ptr = *args;
+	char *command_name;
 	pid_t pid;
 	int what_do = built_ins(args);
 
@@ -230,7 +240,8 @@ int execute_command(char **args)
 
 		path_var = make_array(path_str, ':', NULL);
 
-		if (check_command(args, path_var) == FALSE)
+		command_name = check_command(args, path_var);
+		if (command_name == NULL)
 			return (FALSE);
 
 		pid = fork();
@@ -241,11 +252,12 @@ int execute_command(char **args)
 		}
 		if (pid == 0)
 		{
-			execve(args[0], args, environ);
+			execve(command_name, args, environ);
 			exit(EXIT_FAILURE);
 		}
 		wait(&status);
 
+		free(command_name);
 		free(path_str);
 		free(path_var);
 	}
@@ -278,91 +290,4 @@ int execute_command(char **args)
 		return (FALSE);
 
 	return (TRUE);
-}
-
-/**
- * parser - parses input from the command line
- * @old_buf: buffer to be parsed
- * @old_size: size of old buffer
- *
- * Return: the new, parsed buffer
- */
-char *parser(char *old_buf, size_t old_size)
-{
-	char *new_buf = malloc(old_size * 3);
-	char *new_ptr = new_buf;
-	char *old_ptr = old_buf;
-
-	while (*old_ptr != '\0')
-	{
-		if (*old_ptr == ' ')
-		{
-			*new_ptr = *old_ptr;
-			new_ptr++;
-                        old_ptr++;
-			while (*old_ptr != '\0' && *old_ptr == ' ')
-				old_ptr++;
-		}
-		else if (*old_ptr == '|' && *(old_ptr + 1) == '|')
-		{
-			if (*(new_ptr - 1) != ' ')
-			{
-				*new_ptr = ' ';
-				new_ptr++;
-			}
-			*new_ptr = '|';
-			new_ptr++;
-			*new_ptr = '|';
-			new_ptr++;
-			old_ptr += 2;
-			if (*old_ptr != ' ')
-			{
-				*new_ptr = ' ';
-                                new_ptr++;
-			}
-		}
-		else if (*old_ptr == '&' && *(old_ptr + 1) == '&')
-		{
-                        if (*(new_ptr - 1) != ' ')
-			{
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-                        *new_ptr = '&';
-                        new_ptr++;
-                        *new_ptr = '&';
-                        new_ptr++;
-                        old_ptr += 2;
-                        if (*old_ptr != ' ')
-			{
-				*new_ptr = ' ';
-				new_ptr++;
-                        }
-                }
-		else if (*old_ptr == ';')
-		{
-			if (*(new_ptr - 1) != ' ')
-			{
-				*new_ptr = ' ';
-				new_ptr++;
-			}
-			*new_ptr = ';';
-			new_ptr++;
-			old_ptr++;
-			if (*old_ptr != ' ')
-			{
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-		}
-		else
-		{
-			*new_ptr = *old_ptr;
-                        new_ptr++;
-                        old_ptr++;
-		}
-	}
-	*(new_ptr - 1) = '\0';
-	free(old_buf);
-	return (new_buf);
 }

@@ -12,9 +12,9 @@ various commands have options, such as the option '-l' for 'ls'  which shows the
 .SH ARGUMENTS
 commands take arguments such as filenames
 .SH INVOCATION
-Simple Shell is invoked with the command './hsh', or './' plus whatever it has been compiled to.
+Simple Shell is invoked by entering './' plus whatever it has been compiled to.
 .SH ENVIRONMENT
-Simple Shell's environment is the same as the current user's.
+Simple Shell's environment starts as the same as shell and user calling it, but can be changed.
 .SH BUGS
 There are limitations, such as the absence of wildcards
 .SH AUTHORS

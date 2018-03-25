@@ -2,14 +2,17 @@
 
 int status = 0;
 
+int err_num = 1;
+
+char *shell_name = NULL;
+
 /**
  * main - executes commands from the terminal
  *
  * Return: 0, or another number if desired
  */
-int main(void)
+int main(int ac, char **av)
 {
-/*	int status = 0;*/
 	int bytes_read;
 	int is_separated = FALSE;
 	int i;
@@ -18,7 +21,10 @@ int main(void)
 	char *buf_ptr;
 	char *buf_tmp;
 	char **args = NULL;
-/*	extern char **environ;*/
+
+	ac = ac;
+
+	shell_name = _strdup(*av);
 
 	environ = array_cpy(environ, list_len(environ, NULL));
 
@@ -39,7 +45,7 @@ int main(void)
 			if (bytes_read == -1)
 				exit(EXIT_FAILURE);
 
-			buf = parser(buf, buf_size);
+			buf = input_san(buf, buf_size);
 			buf_ptr = buf;
 		}
 		else
@@ -53,6 +59,8 @@ int main(void)
 			is_separated = FALSE;
 
 		i = command_manager(args);
+		if (i == FALSE && is_separated == FALSE)
+			err_num++;
 
 		free(args);
 
@@ -62,6 +70,8 @@ int main(void)
 	free(buf);
 	alias_func(NULL, TRUE);
 	free_array(environ);
+	free(shell_name);
+
 	if (i == EXIT_SHELL_CODE)
 		return (status % 255);
 

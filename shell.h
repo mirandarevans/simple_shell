@@ -39,17 +39,23 @@ extern char **environ;
 
 extern int status;
 
+extern int err_num;
+
+extern char *shell_name;
+
 int command_manager(char **args);
 
 int built_ins(char **args);
 
 int and_or(char **args, char operator, int last_compare);
 
-int check_command(char **args, char **path_var);
+char *check_command(char **args, char **path_var);
 
 int execute_command(char **args);
 
-char *parser(char *old_buf, size_t old_size);
+char *input_san(char *old_buf, size_t old_size);
+
+void err_message(char **args);
 
 int _strlen(char *str);
 

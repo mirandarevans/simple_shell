@@ -1,5 +1,7 @@
 #include "shell.h"
 
+int status;
+
 /**
  * _setenv - sets and environmental variable
  * @name: name of the variable
@@ -103,7 +105,7 @@ int change_dir(char *name)
 		home++;
 		i = chdir((const char *)home);
 		if (i == -1)
-			return (-1);
+			return (2);
 
 		_setenv("OLDPWD", (const char *)path_buffer, 1);
 		_setenv("PWD", (const char *)home, 1);
@@ -124,7 +126,7 @@ int change_dir(char *name)
 
 		i = chdir((const char *)pwd);
 		if (i == -1)
-			return (-1);
+			return (2);
 
 		write(STDOUT_FILENO, pwd, _strlen(pwd));
 		write(STDOUT_FILENO, "\n", 1);
@@ -137,15 +139,14 @@ int change_dir(char *name)
 	{
 		i = chdir((const char *)name);
 		if (i == -1)
-			return (-1);
+                        return (2);
 
 		_setenv("OLDPWD", (const char *)path_buffer, 1);
 		_setenv("PWD", (const char *)name, 1);
 
 		return (0);
 	}
-
-	return (-1);
+	return (2);
 }
 
 /**

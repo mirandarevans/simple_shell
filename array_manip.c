@@ -38,7 +38,7 @@ char **make_array(char *str, char delim, char **if_sep)
 	while (*str_ptr != '\0')
 	{
 		if (*str_ptr == ';')
-		    break;
+			break;
 		if (*str_ptr == delim && *(str_ptr + 1) != '\0')
 			i++;
 

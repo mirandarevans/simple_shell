@@ -74,6 +74,7 @@ int print_alias_value(char *arg, alias *alias_ptr)
 {
 	while (alias_ptr != NULL)
 	{
+		fflush(stdin);
 		if (str_compare(arg, alias_ptr->name, MATCH) == TRUE)
 		{
 			write(STDOUT_FILENO, arg, _strlen(arg));
@@ -115,7 +116,11 @@ int set_alias_value(char *arg, alias *alias_ptr, char *new_value)
 	{
 		alias_ptr->next = malloc(sizeof(alias *));
 		alias_ptr = alias_ptr->next;
+		if (alias_ptr == NULL)
+			exit(EXIT_FAILURE);
+
 		alias_ptr->name = _strdup(arg);
+		alias_ptr->next = NULL;
 	}
 	alias_ptr->value = _strdup(new_value);
 

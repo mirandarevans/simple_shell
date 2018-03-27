@@ -90,6 +90,25 @@ int change_dir(char *name)
 
 	getcwd(path_buffer, buf_size);
 
+	if (str_compare("~/", name, PREFIX) == TRUE)
+	{
+		home = get_array_element(environ, "HOME");
+
+                if (home == NULL)
+                        return (-1);
+
+                while (*home != '=')
+                {
+                        home++;
+                }
+                home++;
+                i = chdir((const char *)home);
+                if (i == -1)
+                        return (2);
+
+		name += 2;
+	}
+
 	if (name == NULL || str_compare("~", name, MATCH) == TRUE || str_compare("$HOME", name, MATCH) == TRUE)
 	{
 
@@ -190,9 +209,11 @@ int alias_func(char **args, int to_free)
 			*char_ptr = '\0';
 			char_ptr++;
 			set_alias_value(*args, &head, char_ptr);
+			*(char_ptr - 1) = '=';
 		}
 		args++;
 	}
+
 	if (no_error == FALSE)
 		return (FALSE);
 

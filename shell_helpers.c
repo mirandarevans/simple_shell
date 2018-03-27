@@ -17,7 +17,7 @@ int command_manager(char **args)
 	char next_op = 'c';
 	int what_do;
 
-	while (*args != NULL && prev_eval != EXIT_SHELL && prev_eval != EXIT_SHELL_CODE)
+	while (*args != NULL && prev_eval != EXIT_SHELL)
 	{
 		while (*args_ptr != NULL && **args_ptr != '&' && **args_ptr != '|')
 			args_ptr++;
@@ -50,9 +50,6 @@ int command_manager(char **args)
 
 		if (what_do == EXIT_SHELL)
 			return (EXIT_SHELL);
-
-		if (what_do == EXIT_SHELL_CODE)
-			return (EXIT_SHELL_CODE);
 	}
 
 	if (no_err == FALSE || what_do == FALSE)
@@ -87,6 +84,8 @@ int built_ins(char **args)
                 }
 		args_ptr++;
 	}
+	if (*args == NULL)
+		return (SKIP_FORK);
 	i = alias_func(args, FALSE);
 	if (i == DO_EXECVE)
 		return (DO_EXECVE);
@@ -101,7 +100,13 @@ int built_ins(char **args)
 	if (str_compare("exit", *args, MATCH) == TRUE && args[1] != NULL)
 	{
 		status = _atoi(args[1]);
-		return (EXIT_SHELL_CODE);
+		if (status < 0)
+		{
+			status = 2;
+			err_message(args);
+			return (SKIP_FORK);
+		}
+		return (EXIT_SHELL);
 	}
 	else if (str_compare("exit", *args, MATCH) == TRUE)
 	{
@@ -147,8 +152,6 @@ int and_or(char **args, char operator, int last_compare)
 		i = execute_command(args);
 		if (i == EXIT_SHELL)
 			return (EXIT_SHELL);
-		if (i == EXIT_SHELL_CODE)
-			return (EXIT_SHELL_CODE);
 		if (i == TRUE)
 			return (TRUE);
 
@@ -159,8 +162,6 @@ int and_or(char **args, char operator, int last_compare)
 		i = execute_command(args);
 		if (i == EXIT_SHELL)
                         return (EXIT_SHELL);
-                if (i == EXIT_SHELL_CODE)
-                        return (EXIT_SHELL_CODE);
 		if (i == TRUE)
 			return (TRUE);
 	}
@@ -170,11 +171,12 @@ int and_or(char **args, char operator, int last_compare)
 		i = execute_command(args);
 		if (i == EXIT_SHELL)
                         return (EXIT_SHELL);
-                if (i == EXIT_SHELL_CODE)
-                        return (EXIT_SHELL_CODE);
 		if (i == TRUE)
 			return (TRUE);
 	}
+
+	if (last_compare == TRUE && operator == '|')
+		return (TRUE);
 
 	return (FALSE);
 }
@@ -260,7 +262,11 @@ int execute_command(char **args)
 		free(command_name);
 		free(path_str);
 		free(path_var);
+
+		fflush(stdin);
 	}
+	if (str_compare("false", *args, MATCH) == TRUE)
+		status = 1;
 
 	if (*args != buf_ptr)
 		free(*args);
@@ -282,9 +288,6 @@ int execute_command(char **args)
 
 	if (what_do == EXIT_SHELL)
 		return (EXIT_SHELL);
-
-	if (what_do == EXIT_SHELL_CODE)
-		return (EXIT_SHELL_CODE);
 
 	if (status != 0)
 		return (FALSE);

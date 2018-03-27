@@ -18,9 +18,8 @@
 #define MATCH 3
 #define PREFIX 4
 #define EXIT_SHELL 5
-#define EXIT_SHELL_CODE 6
-#define SKIP_FORK 7
-#define DO_EXECVE 8
+#define SKIP_FORK 6
+#define DO_EXECVE 7
 
 /**
  * struct Alias - singly linked list
@@ -53,9 +52,13 @@ char *check_command(char **args, char **path_var);
 
 int execute_command(char **args);
 
-char *input_san(char *old_buf, size_t old_size);
+char *input_san(char *old_buf, size_t *old_size);
 
 void err_message(char **args);
+
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+
+int _getline(char **line_ptr, size_t *n, int file);
 
 int _strlen(char *str);
 

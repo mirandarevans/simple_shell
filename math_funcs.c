@@ -69,33 +69,27 @@ char *_itoa(int n)
 int _atoi(char *s)
 {
 	int n = 0;
-	int is_num = FALSE;
 	int sign = 1;
 	int s_int;
 
+	if (*s == '=' && *(s + 1) >= '0' && *(s + 1) <= '9')
+	{
+		sign = -1;
+		s++;
+	}
+
 	while (*s != '\0')
 	{
-		if (is_num == TRUE && (*s > '9' || *s < '0'))
-			break;
-
-		if (*s == '-')
-			sign = -sign;
-
-		if (is_num == FALSE && *s >= '1' && *s <= '9')
+		if (*s >= '0' && *s <= '9')
 		{
 			s_int = *s - 48;
-			n += s_int;
-			n *= sign;
-			is_num = TRUE;
-		}
-		else if (*s >= '0' && *s <= '9')
-		{
-			s_int = *s - 48;
-			if (n >= 0)
+			if (sign == 1)
 				n = (n * 10) + s_int;
 			else
 				n = (n * 10) - s_int;
 		}
+		else
+			return (-1);
 		s++;
 	}
 

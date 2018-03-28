@@ -30,7 +30,7 @@ int main(int ac, char **av)
 
 	environ = array_cpy(environ, list_len(environ, NULL));
 
-	/*signal(SIGINT,SIG_IGN);*/
+	signal(SIGINT,SIG_IGN);
 
 	buf = malloc(1);
 	if (buf == NULL)

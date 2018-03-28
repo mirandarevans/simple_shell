@@ -123,10 +123,10 @@ int change_dir(char *name)
 		if (i != -1)
 			_setenv("PWD", (const char *)home);
 
-		if (name != NULL && *(name + 1) != '\0' && *(name + 2) != '\0')
+		if (name != NULL && str_compare("~/", name, PREFIX) == TRUE)
 			name += 2;
 	}
-	else if (str_compare("-", name, MATCH) == TRUE)
+	if (str_compare("-", name, MATCH) == TRUE)
 	{
 		pwd = get_array_element(environ, "OLDPWD");
 		if (pwd == NULL)
@@ -146,7 +146,9 @@ int change_dir(char *name)
 			_setenv("PWD", (const char *)pwd);
 		}
 	}
-	else if (name != NULL)
+	if (name != NULL && str_compare("~", name, MATCH) == FALSE
+	    && str_compare("$HOME", name, MATCH) == FALSE && i != -1
+	    && *name != '\0')
 	{
 		i = chdir((const char *)name);
 		if (i != -1)

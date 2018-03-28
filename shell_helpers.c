@@ -79,9 +79,10 @@ int built_ins(char **args)
 		{
 			if (str_compare("$?", *args_ptr, MATCH) == TRUE)
 				*args_ptr = _itoa(status);
-			if (str_compare("$0", *args_ptr, MATCH) == TRUE)
+			else if (str_compare("$0", *args_ptr, MATCH) == TRUE)
 				*args_ptr = shell_name;
-			if (get_array_element(environ, *args_ptr + 1) != NULL)
+			else if (get_array_element(environ, *args_ptr + 1) !=
+				 NULL)
 				*args_ptr = _strdup(get_array_element(environ,
 				*args_ptr + 1) + _strlen(*args_ptr));
 		}

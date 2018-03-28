@@ -1,5 +1,7 @@
 #include "shell.h"
 
+int status;
+
 /**
  * free_aliases - frees all aliases
  * @alias_ptr: ptr to head of alias list
@@ -56,7 +58,8 @@ int print_aliases(alias *alias_ptr)
 	{
 		write(STDOUT_FILENO, alias_ptr->name, _strlen(alias_ptr->name));
 		write(STDOUT_FILENO, "=\'", 2);
-		write(STDOUT_FILENO, alias_ptr->value, _strlen(alias_ptr->value));
+		write(STDOUT_FILENO, alias_ptr->value,
+		      _strlen(alias_ptr->value));
 		write(STDOUT_FILENO, "\'\n", 2);
 		alias_ptr = alias_ptr->next;
 	}
@@ -79,22 +82,24 @@ int print_alias_value(char *arg, alias *alias_ptr)
 		{
 			write(STDOUT_FILENO, arg, _strlen(arg));
 			write(STDOUT_FILENO, "=\'", 2);
-			write(STDOUT_FILENO, alias_ptr->value, _strlen(alias_ptr->value));
+			write(STDOUT_FILENO, alias_ptr->value,
+			      _strlen(alias_ptr->value));
 			write(STDOUT_FILENO, "\'\n", 2);
 			return (TRUE);
 		}
 		alias_ptr = alias_ptr->next;
 	}
 
-	write(STDOUT_FILENO, "alias: ", 7);
-	write(STDOUT_FILENO, arg, _strlen(arg));
-	write(STDOUT_FILENO, " not found\n", 11);
+	status = 1;
+	write(STDERR_FILENO, "alias: ", 7);
+	write(STDERR_FILENO, arg, _strlen(arg));
+	write(STDERR_FILENO, " not found\n", 11);
 
 	return (FALSE);
 }
 
 /**
- * set_alias_value - initializes an alias or resets its value if it already exists
+ * set_alias_value - initializes an alias or resets its value if it exists
  * @arg: name of alias
  * @alias_ptr: pointer to list of aliases
  * @new_value: value of alias to be set
@@ -103,7 +108,8 @@ int print_alias_value(char *arg, alias *alias_ptr)
  */
 int set_alias_value(char *arg, alias *alias_ptr, char *new_value)
 {
-	while (alias_ptr->next != NULL && str_compare(alias_ptr->name, arg, MATCH) != TRUE)
+	while (alias_ptr->next != NULL
+	       && str_compare(alias_ptr->name, arg, MATCH) != TRUE)
 	{
 		alias_ptr = alias_ptr->next;
 	}

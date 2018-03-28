@@ -56,8 +56,6 @@ char *_strdup(char *src)
  * @s1: first string
  * @s2: second string
  *
- * I apologize for the lack of spacing - holberton checker reqs
- *
  * Return: a pointer to the new string, or NULL if failure
  */
 char *str_concat(char *s1, char *s2)
@@ -78,13 +76,13 @@ char *str_concat(char *s1, char *s2)
 
 	if (s2 != NULL)
 	{
-                while (*s2 != '\0')
+		while (*s2 != '\0')
 		{
-                        *ptr = *s2;
-                        ptr++;
-                        s2++;
-                }
-        }
+			*ptr = *s2;
+			ptr++;
+			s2++;
+		}
+	}
 
 	*ptr = '\0';
 

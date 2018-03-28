@@ -2,12 +2,14 @@
 
 int status = 0;
 
-int err_num = 1;
+int line_num = 1;
 
 char *shell_name = NULL;
 
 /**
  * main - executes commands from the terminal
+ * @ac: number of inputs from main
+ * @av: array of inputs from main
  *
  * Return: 0, or another number if desired
  */
@@ -16,7 +18,6 @@ int main(int ac, char **av)
 	int bytes_read;
 	int is_separated = FALSE;
 	int i;
-/*	int fd;*/
 	size_t buf_size = 1;
 	char *buf = NULL;
 	char *buf_ptr;
@@ -25,9 +26,6 @@ int main(int ac, char **av)
 
 	ac = ac;
 
-/*	if (ac == 2)
-		fd = open(av[1], O_RDONLY);
-*/
 	shell_name = _strdup(*av);
 
 	environ = array_cpy(environ, list_len(environ, NULL));
@@ -44,16 +42,13 @@ int main(int ac, char **av)
 		{
 			if (isatty(STDIN_FILENO) == 1)
 				write(STDOUT_FILENO, "my_shell$ ", 10);
-/*
-			if (ac == 2)
-				bytes_read = _getline(&buf, &buf_size, fd);
-				else*/
-				bytes_read = getline(&buf, &buf_size, stdin);
+
+			bytes_read = getline(&buf, &buf_size, stdin);
 
 			if (bytes_read == -1)
 				break;
 
-			buf[bytes_read -1] = '\0';
+			buf[bytes_read - 1] = '\0';
 			buf = input_san(buf, &buf_size);
 			if (buf_size == 0)
 				continue;
@@ -73,8 +68,8 @@ int main(int ac, char **av)
 
 		free(args);
 
-		if (i == FALSE && is_separated == FALSE)
-			err_num++;
+		if (is_separated == FALSE)
+			line_num++;
 
 		if (i == EXIT_SHELL)
 			break;
@@ -84,8 +79,5 @@ int main(int ac, char **av)
 	free_array(environ);
 	free(shell_name);
 
-/*	if (ac == 2)
-		close(fd);
-*/
 	return (status % 256);
 }

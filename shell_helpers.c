@@ -2,6 +2,8 @@
 
 int status;
 
+char *shell_name;
+
 /**
  * command_manager - manages the process a command goes through to get executed
  * @args: command and arguments
@@ -19,7 +21,8 @@ int command_manager(char **args)
 
 	while (*args != NULL && prev_eval != EXIT_SHELL)
 	{
-		while (*args_ptr != NULL && **args_ptr != '&' && **args_ptr != '|')
+		while (*args_ptr != NULL && **args_ptr != '&'
+		       && **args_ptr != '|')
 			args_ptr++;
 
 		if (str_compare(*args_ptr, "||", MATCH) == TRUE)
@@ -73,29 +76,28 @@ int built_ins(char **args)
 	while (*args_ptr != NULL)
 	{
 		if (**args_ptr == '$')
-                {
-                        if (str_compare("$?", *args_ptr, MATCH) == TRUE)
-                                *args_ptr = _itoa(status);
-                }
-                if (**args_ptr == '#')
-                {
-                        *args_ptr = NULL;
+		{
+			if (str_compare("$?", *args_ptr, MATCH) == TRUE)
+				*args_ptr = _itoa(status);
+			if (str_compare("$0", *args_ptr, MATCH) == TRUE)
+				*args_ptr = shell_name;
+			if (get_array_element(environ, *args_ptr + 1) != NULL)
+				*args_ptr = _strdup(get_array_element(environ,
+				*args_ptr + 1) + _strlen(*args_ptr));
+		}
+		if (**args_ptr == '#')
+		{
+			*args_ptr = NULL;
 			break;
-                }
+		}
 		args_ptr++;
 	}
 	if (*args == NULL)
 		return (SKIP_FORK);
+
 	i = alias_func(args, FALSE);
-	if (i == DO_EXECVE)
-		return (DO_EXECVE);
-	if (i == SKIP_FORK)
-		return (SKIP_FORK);
-	if (i == FALSE)
-	{
-		status = 1;
-		return (SKIP_FORK);
-	}
+	if (i == DO_EXECVE || i == SKIP_FORK)
+		return (i);
 
 	if (str_compare("exit", *args, MATCH) == TRUE && args[1] != NULL)
 	{
@@ -103,37 +105,21 @@ int built_ins(char **args)
 		if (status < 0)
 		{
 			status = 2;
-			err_message(args);
+			err_message(args[0], args[1]);
 			return (SKIP_FORK);
 		}
+	}
+	if (str_compare("exit", *args, MATCH) == TRUE)
 		return (EXIT_SHELL);
-	}
-	else if (str_compare("exit", *args, MATCH) == TRUE)
-	{
-		return (EXIT_SHELL);
-	}
-	else if (str_compare("setenv", *args, MATCH) == TRUE && args[1] != NULL && args[2] != NULL)
-	{
-		status = _setenv(args[1], args[2], 1);
-		return (SKIP_FORK);
-	}
-	else if (str_compare("unsetenv", *args, MATCH) == TRUE && args[1] != NULL)
-	{
-		status = _unsetenv(args[1]);
-		return (SKIP_FORK);
-	}
+	else if (str_compare("setenv", *args, MATCH) == TRUE && args[1] != NULL)
+		return (_setenv(args[1], args[2]));
+	else if (str_compare("unsetenv", *args, MATCH) == TRUE
+		 && args[1] != NULL)
+		return (_unsetenv(args[1]));
 	else if (str_compare("cd", *args, MATCH) == TRUE)
-	{
-		status = change_dir(args[1]);
-		if (status == 2)
-			err_message(args);
-		return (SKIP_FORK);
-	}
+		return (change_dir(args[1]));
 	else if (str_compare("env", *args, MATCH) == TRUE)
-	{
-		status = print_env();
-		return (SKIP_FORK);
-	}
+		return (print_env());
 
 	return (DO_EXECVE);
 }
@@ -141,7 +127,10 @@ int built_ins(char **args)
 /**
  * and_or - deals with command line logical operators
  * @args: command and arguments
+ * @operator: first char of logical operator
  * @last_compare: if last command in logic evaluated to true or false
+ *
+ * Return: if this command evaluates to true or false
  */
 int and_or(char **args, char operator, int last_compare)
 {
@@ -161,7 +150,7 @@ int and_or(char **args, char operator, int last_compare)
 	{
 		i = execute_command(args);
 		if (i == EXIT_SHELL)
-                        return (EXIT_SHELL);
+			return (EXIT_SHELL);
 		if (i == TRUE)
 			return (TRUE);
 	}
@@ -170,7 +159,7 @@ int and_or(char **args, char operator, int last_compare)
 	{
 		i = execute_command(args);
 		if (i == EXIT_SHELL)
-                        return (EXIT_SHELL);
+			return (EXIT_SHELL);
 		if (i == TRUE)
 			return (TRUE);
 	}
@@ -184,14 +173,20 @@ int and_or(char **args, char operator, int last_compare)
 /**
  * check_command - checks if a non-built-in exists
  * @args: argument and commands
- * @path_var: the PATH var in list form
  *
  * Return: TRUE if valid command, FALSE if not
  */
-char *check_command(char **args, char **path_var)
+char *check_command(char **args)
 {
 	char *command_buf;
 	char *full_buf;
+	char *path_str;
+	char **path_var;
+
+	if (get_array_element(environ, "PATH") != NULL)
+		path_str = _strdup(get_array_element(environ, "PATH") + 5);
+
+	path_var = make_array(path_str, ':', NULL);
 
 	if (**args != '/' || **args != '.')
 		command_buf = str_concat("/", *args);
@@ -207,16 +202,16 @@ char *check_command(char **args, char **path_var)
 		path_var++;
 	}
 
+	free(command_buf);
+	free(path_str);
+
 	if (access(full_buf, X_OK) != 0)
 	{
-		status = 127;
-		err_message(args);
-		free(command_buf);
+		err_message(args[0], NULL);
 		free(full_buf);
 		return (NULL);
 	}
 
-	free(command_buf);
 	return (full_buf);
 }
 
@@ -224,12 +219,10 @@ char *check_command(char **args, char **path_var)
  * execute_command - executes a command
  * @args: command and arguments
  *
- * Return: TRUE if success, FALSE if not
+ * Return: TRUE or EXIT_SHELL
  */
 int execute_command(char **args)
 {
-	char *path_str;
-	char **path_var;
 	char *buf_ptr = *args;
 	char *command_name;
 	pid_t pid;
@@ -237,17 +230,11 @@ int execute_command(char **args)
 
 	if (what_do == DO_EXECVE)
 	{
-		if (get_array_element(environ, "PATH") != NULL)
-			path_str = _strdup(get_array_element(environ, "PATH") + 5);
-
-		path_var = make_array(path_str, ':', NULL);
-
-		command_name = check_command(args, path_var);
+		command_name = check_command(args);
 		if (command_name == NULL)
-			return (FALSE);
+			return (TRUE);
 
 		pid = fork();
-
 		if (pid == -1)
 		{
 			exit(EXIT_FAILURE);
@@ -258,13 +245,10 @@ int execute_command(char **args)
 			exit(EXIT_FAILURE);
 		}
 		wait(&status);
-
 		free(command_name);
-		free(path_str);
-		free(path_var);
-
 		fflush(stdin);
 	}
+
 	if (str_compare("false", *args, MATCH) == TRUE)
 		status = 1;
 
@@ -281,16 +265,13 @@ int execute_command(char **args)
 		buf_ptr++;
 
 		if (*args != buf_ptr)
-			free (*args);
+			free(*args);
 
 		args++;
 	}
 
 	if (what_do == EXIT_SHELL)
 		return (EXIT_SHELL);
-
-	if (status != 0)
-		return (FALSE);
 
 	return (TRUE);
 }

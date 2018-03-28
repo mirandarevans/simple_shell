@@ -6,26 +6,28 @@ int status;
  * _setenv - sets and environmental variable
  * @name: name of the variable
  * @value: value to set the variable to
- * @overwrite: function won't do anthing if the variable doesn't already exist
- * and overwrite is 0
  *
  * Return: 0 on success
  */
-int _setenv(const char *name, const char *value, int overwrite)
+int _setenv(const char *name, const char *value)
 {
 	char **new_environ;
 	char *buffer;
-	char *buf_ptr;
+	char *buf_tmp;
 	char *element_ptr = get_array_element(environ, (char *) name);
 	int len;
 
-	if (element_ptr != NULL && overwrite == 0)
-		exit(EXIT_FAILURE);
+	if (value == NULL)
+	{
+		write(STDERR_FILENO, "setenv: no value given\n", 23);
+		status = 2;
+		return (SKIP_FORK);
+	}
 
 	buffer = str_concat((char *)name, "=");
-	buf_ptr = str_concat(buffer, (char *)value);
+	buf_tmp = str_concat(buffer, (char *)value);
 	free(buffer);
-	buffer = buf_ptr;
+	buffer = buf_tmp;
 
 	if (element_ptr == NULL)
 	{
@@ -35,17 +37,16 @@ int _setenv(const char *name, const char *value, int overwrite)
 		new_environ[len] = NULL;
 		free_array(environ);
 		environ = new_environ;
-		return (0);
-
-	}
-	else
-	{
-		len = list_len(environ, (char *)name);
-		free(environ[len]);
-		environ[len] = buffer;
+		return (SKIP_FORK);
 	}
 
-	return (0);
+	len = list_len(environ, (char *)name);
+	free(environ[len]);
+	environ[len] = buffer;
+
+	status = 0;
+
+	return (SKIP_FORK);
 }
 
 /**
@@ -60,7 +61,11 @@ int _unsetenv(const char *name)
 	int len = list_len(environ, (char *)name);
 
 	if (len == -1)
-		return (-1);
+	{
+		write(STDERR_FILENO, "unsetenv: variable not found\n", 29);
+		status = 2;
+		return (SKIP_FORK);
+	}
 
 	env_ptr = environ + len;
 	free(*env_ptr);
@@ -70,8 +75,9 @@ int _unsetenv(const char *name)
 		env_ptr++;
 	}
 	*env_ptr = NULL;
+	status = 0;
 
-	return (0);
+	return (SKIP_FORK);
 }
 
 /**
@@ -90,52 +96,41 @@ int change_dir(char *name)
 
 	getcwd(path_buffer, buf_size);
 
-	if (str_compare("~/", name, PREFIX) == TRUE)
+	if (name == NULL || str_compare("~", name, PREFIX) == TRUE
+	    || str_compare("$HOME", name, MATCH) == TRUE)
 	{
-		home = get_array_element(environ, "HOME");
-
-                if (home == NULL)
-                        return (-1);
-
-                while (*home != '=')
-                {
-                        home++;
-                }
-                home++;
-                i = chdir((const char *)home);
-                if (i == -1)
-                        return (2);
-
-		name += 2;
-	}
-
-	if (name == NULL || str_compare("~", name, MATCH) == TRUE || str_compare("$HOME", name, MATCH) == TRUE)
-	{
+		if (name != NULL && *name == '~' && *(name + 1) != '\0'
+		    && *(name + 1) != '/')
+		{
+			status = 2;
+			err_message("cd", name);
+			return (SKIP_FORK);
+		}
 
 		home = get_array_element(environ, "HOME");
-
 		if (home == NULL)
-			return (-1);
+		{
+			status = 2;
+			err_message("cd", name);
+			return (SKIP_FORK);
+		}
 
 		while (*home != '=')
-		{
 			home++;
-		}
+
 		home++;
 		i = chdir((const char *)home);
-		if (i == -1)
-			return (2);
+		if (i != -1)
+			_setenv("PWD", (const char *)home);
 
-		_setenv("OLDPWD", (const char *)path_buffer, 1);
-		_setenv("PWD", (const char *)home, 1);
-
-		return (0);
+		if (name != NULL && *(name + 1) != '\0' && *(name + 2) != '\0')
+			name += 2;
 	}
 	else if (str_compare("-", name, MATCH) == TRUE)
 	{
 		pwd = get_array_element(environ, "OLDPWD");
 		if (pwd == NULL)
-			return (-1);
+			return (2);
 
 		while (*pwd != '=')
 		{
@@ -144,28 +139,30 @@ int change_dir(char *name)
 		pwd++;
 
 		i = chdir((const char *)pwd);
-		if (i == -1)
-			return (2);
-
-		write(STDOUT_FILENO, pwd, _strlen(pwd));
-		write(STDOUT_FILENO, "\n", 1);
-		_setenv("OLDPWD", (const char *)path_buffer, 1);
-		_setenv("PWD", (const char *)pwd, 1);
-
-		return (0);
+		if (i != -1)
+		{
+			write(STDOUT_FILENO, pwd, _strlen(pwd));
+			write(STDOUT_FILENO, "\n", 1);
+			_setenv("PWD", (const char *)pwd);
+		}
 	}
 	else if (name != NULL)
 	{
 		i = chdir((const char *)name);
-		if (i == -1)
-                        return (2);
-
-		_setenv("OLDPWD", (const char *)path_buffer, 1);
-		_setenv("PWD", (const char *)name, 1);
-
-		return (0);
+		if (i != -1)
+			_setenv("PWD", (const char *)name);
 	}
-	return (2);
+	if (i == -1)
+	{
+		status = 2;
+		err_message("cd", name);
+		return (SKIP_FORK);
+	}
+
+	status = 0;
+	_setenv("OLDPWD", (const char *)path_buffer);
+
+	return (SKIP_FORK);
 }
 
 /**
@@ -215,8 +212,9 @@ int alias_func(char **args, int to_free)
 	}
 
 	if (no_error == FALSE)
-		return (FALSE);
+		return (SKIP_FORK);
 
+	status = 0;
 	return (SKIP_FORK);
 }
 
@@ -236,5 +234,7 @@ int print_env(void)
 		ptr++;
 	}
 
-	return (TRUE);
+	status = 0;
+
+	return (SKIP_FORK);
 }

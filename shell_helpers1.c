@@ -2,7 +2,7 @@
 
 int status;
 
-int err_num;
+int line_num;
 
 char *shell_name;
 
@@ -15,202 +15,139 @@ char *shell_name;
  */
 char *input_san(char *old_buf, size_t *old_size)
 {
-        char *new_buf = malloc(*old_size * 3);
-        char *new_ptr = new_buf;
-        char *old_ptr = old_buf;
+	char *new_buf = malloc(*old_size * 3);
+	char *new_ptr = new_buf;
+	char *old_ptr = old_buf;
 
-	while (*old_ptr != '\0' && *old_ptr == ' ')
-		old_ptr++;
+	while (*old_ptr != '\0')
+	{
+		while (*old_ptr == ' ')
+			old_ptr++;
+		while (*old_ptr	!= ' ' && *old_ptr != ';' && *old_ptr != '|'
+		       && *old_ptr != '&' && *old_ptr != '\0')
+		{
+			*new_ptr = *old_ptr;
+			new_ptr++;
+			old_ptr++;
+		}
+		while (*old_ptr == ' ')
+			old_ptr++;
+		if (new_ptr != new_buf && *old_ptr != '\0')
+		{
+			*new_ptr = ' ';
+			new_ptr++;
+		}
 
-        while (*old_ptr != '\0')
-        {
-                if (*old_ptr == ' ')
-                {
-                        *new_ptr = *old_ptr;
-                        new_ptr++;
-                        old_ptr++;
-                        while (*old_ptr != '\0' && *old_ptr == ' ')
-                                old_ptr++;
-                }
-                else if (*(old_ptr + 1) == *old_ptr && (*old_ptr == '|' || *old_ptr == '&'))
-                {
-			if (new_ptr == new_buf || ((new_ptr - 2) >= new_buf && *(new_ptr - 2) == ';'))
+		if (*old_ptr == ';' || *old_ptr == '|' || *old_ptr == '&')
+		{
+			if (input_err_check(old_ptr) == FALSE)
 			{
-				err_message(&old_ptr);
-				*old_size = 0;
-                                break;
-			}
-                        if (*(new_ptr - 1) != ' ')
-                        {
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-                        *new_ptr = *old_ptr;
-                        *(new_ptr + 1) = *old_ptr;
-                        new_ptr += 2;
-                        old_ptr += 2;
-                        if (*old_ptr != ' ')
-                        {
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-                }
-                else if (*old_ptr == ';')
-                {
-			if (*(old_ptr + 1) == ';')
-			{
-				err_message(&old_ptr);
 				*old_size = 0;
 				break;
 			}
-                        if (*(new_ptr - 1) != ' ')
-                        {
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-                        *new_ptr = ';';
-                        new_ptr++;
-                        old_ptr++;
-                        if (*old_ptr != ' ')
-                        {
-                                *new_ptr = ' ';
-                                new_ptr++;
-                        }
-                }
-                else
-                {
-                        *new_ptr = *old_ptr;
-                        new_ptr++;
-                        old_ptr++;
-                }
-        }
+			*new_ptr = *old_ptr;
+			if (*old_ptr == ';')
+			{
+				new_ptr++;
+				*new_ptr = ' ';
+			}
+			else if (*(old_ptr + 1) == *old_ptr)
+			{
+				if (new_ptr == new_buf)
+				{
+					err_message(old_ptr, NULL);
+					*old_size = 0;
+					break;
+				}
+				new_ptr++;
+				*new_ptr = *old_ptr;
+				new_ptr++;
+				*new_ptr = ' ';
+				old_ptr++;
+			}
+			new_ptr++;
+			old_ptr++;
+		}
+	}
 	*new_ptr = '\0';
-        free(old_buf);
-        return (new_buf);
+	free(old_buf);
+	return (new_buf);
 }
 
-void err_message(char **args)
+/**
+ * input_err_check - helper function for sanitizer, check for unexpected char
+ * @ptr: pointer to area that needs to be checked
+ *
+ * Return: TRUE if no error, FALSE if error
+ */
+int input_err_check(char *ptr)
 {
-	char *err_str_num = _itoa(err_num);
+	char *iter = ptr;
+
+	iter++;
+	if (*ptr == ';' && *iter == *ptr)
+	{
+		err_message(ptr, NULL);
+		return (FALSE);
+	}
+	if (*iter == *ptr)
+		iter++;
+
+	while (*iter == ' ')
+		iter++;
+
+	if (*iter == ';' || *iter == '|' || *iter == '&')
+	{
+		err_message(iter, NULL);
+		return (FALSE);
+	}
+
+	return (TRUE);
+}
+
+/**
+ * err_message - prints error messages and sets status
+ * @arg0: command that is causing error
+ * @arg1: first argument to command
+ */
+void err_message(char *arg0, char *arg1)
+{
+	char *err_str_num = _itoa(line_num);
 
 	write(STDERR_FILENO, shell_name, _strlen(shell_name));
-        write(STDERR_FILENO, ": ", 2);
-        write(STDERR_FILENO, err_str_num, _strlen(err_str_num));
+	write(STDERR_FILENO, ": ", 2);
+	write(STDERR_FILENO, err_str_num, _strlen(err_str_num));
+	free(err_str_num);
 
-	if (str_compare("cd", *args, MATCH) == TRUE)
+	if (str_compare("cd", arg0, MATCH) == TRUE)
 	{
+		status = 2;
 		write(STDERR_FILENO, ": cd: can't cd to", 17);
-		write(STDERR_FILENO, args[1], _strlen(args[1]));
+		write(STDERR_FILENO, arg1, _strlen(arg1));
 		write(STDERR_FILENO, "\n", 1);
 		return;
 	}
 
-	if (str_compare("exit", *args, MATCH) == TRUE)
+	if (str_compare("exit", arg0, MATCH) == TRUE)
 	{
-                write(STDERR_FILENO, ": exit: Illegal number: ", 24);
-		write(STDERR_FILENO, args[1], _strlen(args[1]));
+		write(STDERR_FILENO, ": exit: Illegal number: ", 24);
+		write(STDERR_FILENO, arg1, _strlen(arg1));
 		write(STDERR_FILENO, "\n", 1);
 		return;
 	}
-	if (str_compare(";", *args, PREFIX) == TRUE || str_compare("|", *args, PREFIX) == TRUE || str_compare("&", *args, PREFIX) == TRUE)
+	if (*arg0 == ';' || *arg0 == '|' || *arg0 == '&')
 	{
+		status = 2;
 		write(STDERR_FILENO, ": Syntax error: \"", 17);
-		write(STDERR_FILENO, *args, 2);
+		write(STDERR_FILENO, arg0, 1);
+		if (*arg0 == *(arg0 + 1))
+			write(STDERR_FILENO, arg0, 1);
 		write(STDERR_FILENO, "\" unexpected\n", 14);
 		return;
 	}
 
+	status = 127;
 	write(STDERR_FILENO, ": ", 2);
-	write(STDERR_FILENO, *args, _strlen(*args));
+	write(STDERR_FILENO, arg0, _strlen(arg0));
 	write(STDERR_FILENO, ": not found\n", 12);
-
-	free(err_str_num);
-}
-
-/**
- * _realloc - reallocates memory that has previously been malloc'd
- * @ptr: old ptr we are reallocating
- * @old_size: size of old memory we are reallocating
- * @new_size: size of new memory we want to reallocate
- *
- * Return: pointer to new memory, or NULL if failure
- */
-void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size)
-{
-	char *new_ptr = NULL;
-	char *ptr_cpy;
-	unsigned int i;
-	char *old_ptr = (char *)ptr;
-
-	if (new_size == old_size)
-		return (ptr);
-
-	if (new_size == 0 && ptr != NULL)
-	{
-		free(ptr);
-		return (NULL);
-	}
-
-	new_ptr = malloc(new_size);
-
-	if (new_ptr == NULL)
-		return (NULL);
-
-	if (ptr == NULL)
-		return (new_ptr);
-
-	ptr_cpy = new_ptr;
-
-	for (i = 0; i < old_size; i++)
-	{
-		*ptr_cpy = *old_ptr;
-		ptr_cpy++;
-		old_ptr++;
-	}
-
-	free(ptr);
-
-	return (new_ptr);
-}
-
-int _getline(char **line_ptr, size_t *n, int file)
-{
-	unsigned int i = 0;
-	int r;
-	char holder = 'c';
-	char *iter;
-
-	if ((int)*n < 2)
-	{
-		*line_ptr = _realloc(*line_ptr, *n, *n + 200);
-		*n += 200;
-	}
-
-	if (*line_ptr == NULL)
-		*line_ptr = malloc(200);
-
-	iter = *line_ptr;
-
-	while (holder != '\n' && holder != 0 && holder != EOF)
-	{
-		r = read(file, &holder, 1);
-		if (r == -1)
-			exit(EXIT_FAILURE);
-
-		*iter = (char)holder;
-		i++;
-		if (i == *n)
-		{
-			*line_ptr = _realloc(*line_ptr, *n, *n + 200);
-			iter = *line_ptr + (*n - 1);
-			*n += 200;
-		}
-		iter++;
-	}
-	if (holder != '\n')
-		return (-1);
-
-	*iter = holder;
-
-	return (i);
 }

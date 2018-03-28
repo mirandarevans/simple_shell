@@ -38,7 +38,7 @@ extern char **environ;
 
 extern int status;
 
-extern int err_num;
+extern int line_num;
 
 extern char *shell_name;
 
@@ -48,13 +48,15 @@ int built_ins(char **args);
 
 int and_or(char **args, char operator, int last_compare);
 
-char *check_command(char **args, char **path_var);
+char *check_command(char **args);
 
 int execute_command(char **args);
 
 char *input_san(char *old_buf, size_t *old_size);
 
-void err_message(char **args);
+int input_err_check(char *ptr);
+
+void err_message(char *arg0, char *arg1);
 
 void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
 
@@ -78,7 +80,7 @@ char **array_cpy(char **old_array, int new_size);
 
 int free_array(char **args);
 
-int _setenv(const char *name, const char *value, int overwrite);
+int _setenv(const char *name, const char *value);
 
 int _unsetenv(const char *name);
 

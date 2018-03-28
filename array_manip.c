@@ -117,8 +117,8 @@ int list_len(char **list, char *entry)
 
 /**
  * array_cpy - copies an array
- * @old_array - array to be copied
- * @new_size - size of new array
+ * @old_array: array to be copied
+ * @new_size: size of new array
  *
  * Return: the new array
  */
@@ -141,6 +141,12 @@ char **array_cpy(char **old_array, int new_size)
 	return (new_array);
 }
 
+/**
+ * free_array - frees a two dimensional array
+ * @args: array to be freed
+ *
+ * Return: TRUE
+ */
 int free_array(char **args)
 {
 	char **ptr = args;

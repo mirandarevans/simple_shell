@@ -153,6 +153,8 @@ int and_or(char **args, char operator, int last_compare)
 			return (EXIT_SHELL);
 		if (i == TRUE)
 			return (TRUE);
+
+		return (FALSE);
 	}
 
 	if (last_compare == FALSE && operator == '|')
@@ -162,6 +164,8 @@ int and_or(char **args, char operator, int last_compare)
 			return (EXIT_SHELL);
 		if (i == TRUE)
 			return (TRUE);
+
+		return (FALSE);
 	}
 
 	if (last_compare == TRUE && operator == '|')
@@ -232,7 +236,7 @@ int execute_command(char **args)
 	{
 		command_name = check_command(args);
 		if (command_name == NULL)
-			return (TRUE);
+			return (FALSE);
 
 		pid = fork();
 		if (pid == -1)
@@ -272,6 +276,9 @@ int execute_command(char **args)
 
 	if (what_do == EXIT_SHELL)
 		return (EXIT_SHELL);
+
+	if (status != 0)
+		return (FALSE);
 
 	return (TRUE);
 }

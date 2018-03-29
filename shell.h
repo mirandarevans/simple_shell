@@ -62,6 +62,8 @@ void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
 
 int _getline(char **line_ptr, size_t *n, int file);
 
+char *check_for_vars(char *arg);
+
 int _strlen(char *str);
 
 char *_strdup(char *src);

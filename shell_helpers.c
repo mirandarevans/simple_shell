@@ -75,22 +75,13 @@ int built_ins(char **args)
 
 	while (*args_ptr != NULL)
 	{
-		if (**args_ptr == '$')
-		{
-			if (str_compare("$?", *args_ptr, MATCH) == TRUE)
-				*args_ptr = _itoa(status);
-			else if (str_compare("$0", *args_ptr, MATCH) == TRUE)
-				*args_ptr = shell_name;
-			else if (get_array_element(environ, *args_ptr + 1) !=
-				 NULL)
-				*args_ptr = _strdup(get_array_element(environ,
-				*args_ptr + 1) + _strlen(*args_ptr));
-		}
 		if (**args_ptr == '#')
 		{
 			*args_ptr = NULL;
 			break;
 		}
+		*args_ptr = check_for_vars(*args_ptr);
+
 		args_ptr++;
 	}
 	if (*args == NULL)
@@ -185,30 +176,70 @@ char *check_command(char **args)
 {
 	char *command_buf;
 	char *full_buf;
-	char *path_str;
+	char *path_str = NULL;
+	char *path_ptr;
+	char *path_tmp;
 	char **path_var;
+	char **path_var_ptr;
+
+	if (access(*args, X_OK) == 0)
+		return (_strdup(*args));
 
 	if (get_array_element(environ, "PATH") != NULL)
 		path_str = _strdup(get_array_element(environ, "PATH") + 5);
 
-	path_var = make_array(path_str, ':', NULL);
+	path_ptr = path_str;
 
-	if (**args != '/' || **args != '.')
-		command_buf = str_concat("/", *args);
-	else
-		command_buf = _strdup(*args);
+	if (path_str != NULL)
+	{
+		if (*path_str == ':')
+		{
+			command_buf = str_concat("./", *args);
+			if (access(command_buf, X_OK) == 0)
+			{
+				free(path_str);
+				return (command_buf);
+			}
+			else
+			{
+				free(command_buf);
+				path_ptr = _strdup(path_str + 1);
+				free(path_str);
+				path_str = path_ptr;
+			}
+		}
+		while (*path_ptr != '\0')
+		{
+			if (*path_ptr == ':' && *(path_ptr + 1) == ':')
+			{
+				*(path_ptr + 1) = '\0';
+				path_tmp = (str_concat(path_str, ".:"));
+				path_ptr = str_concat(path_tmp, path_ptr + 2);
+				free(path_str);
+				free(path_tmp);
+				path_str = path_ptr;
+			}
+			path_ptr++;
+		}
+	}
+
+	path_var = make_array(path_str, ':', NULL);
+	path_var_ptr = path_var;
+
+	command_buf = str_concat("/", *args);
 
 	full_buf = _strdup(command_buf);
 
-	while (*path_var != NULL && access(full_buf, X_OK) != 0)
+	while (*path_var_ptr != NULL && access(full_buf, X_OK) != 0)
 	{
 		free(full_buf);
-		full_buf = str_concat(*path_var, command_buf);
-		path_var++;
+		full_buf = str_concat(*path_var_ptr, command_buf);
+		path_var_ptr++;
 	}
 
 	free(command_buf);
 	free(path_str);
+	free(path_var);
 
 	if (access(full_buf, X_OK) != 0)
 	{

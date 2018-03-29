@@ -148,7 +148,7 @@ int change_dir(char *name)
 	}
 	if (name != NULL && str_compare("~", name, MATCH) == FALSE
 	    && str_compare("$HOME", name, MATCH) == FALSE && i != -1
-	    && *name != '\0')
+	    && *name != '\0' && str_compare("-", name, MATCH) != TRUE)
 	{
 		i = chdir((const char *)name);
 		if (i != -1)

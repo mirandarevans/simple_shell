@@ -13,7 +13,7 @@ char *shell_name = NULL;
  *
  * Return: 0, or another number if desired
  */
-int main(int ac, char **av)
+int main(__attribute__((unused))int ac, char **av)
 {
 	int bytes_read;
 	int is_separated = FALSE;
@@ -24,13 +24,11 @@ int main(int ac, char **av)
 	char *buf_tmp;
 	char **args = NULL;
 
-	ac = ac;
-
 	shell_name = _strdup(*av);
 
 	environ = array_cpy(environ, list_len(environ, NULL));
 
-	signal(SIGINT,SIG_IGN);
+	signal(SIGINT, SIG_IGN);
 
 	buf = malloc(1);
 	if (buf == NULL)
@@ -47,11 +45,18 @@ int main(int ac, char **av)
 
 			if (bytes_read == -1)
 				break;
-
+			if (bytes_read == 1)
+			{
+				line_num++;
+				continue;
+			}
 			buf[bytes_read - 1] = '\0';
 			buf = input_san(buf, &buf_size);
 			if (buf_size == 0)
+			{
+				line_num++;
 				continue;
+			}
 			buf_ptr = buf;
 		}
 		else
